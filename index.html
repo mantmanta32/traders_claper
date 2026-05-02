@@ -1019,7 +1019,6 @@ function connectWS(myId){
 
   newWs.onmessage = event => {
     if(myId !== loadId) return;
-    if(ws !== newWs && newWs.readyState !== WebSocket.CONNECTING) return;
 
     let data; try{ data=JSON.parse(event.data); }catch(e){ return; }
     const k = data.k; if(!k) return;
@@ -1088,7 +1087,6 @@ function connectWS(myId){
 //  WEBSOCKET — aggTrade (Balina tespiti)
 // ══════════════════════════════════════════════════════
 function connectAggWS(myId){
-  if(!S.settings.whaleAlert) return;
   const url = `wss://fstream.binance.com/ws/${S.symbol.toLowerCase()}@trade`;
   const newWs = new WebSocket(url);
 
@@ -1102,23 +1100,45 @@ function connectAggWS(myId){
 
   newWs.onmessage = event => {
     if(myId !== loadId) return;
-    if(!S.settings.whaleAlert) return;
     let data; try{ data=JSON.parse(event.data); }catch(e){ return; }
-    const usd = parseFloat(data.p) * parseFloat(data.q);
-    if(usd < 500000) return;
+    const price = parseFloat(data.p);
+    if(!price || price <= 0) return;
+    // Anlık fiyat güncelle
+    S.price = price;
+    updateTopBar();
+    S.liqZones.forEach(z => z.dist = Math.abs(z.price-S.price)/S.price*100);
+    S.liqZones.sort((a,b) => a.dist-b.dist);
+    checkAlarms();
+    setLiveDot(true);
 
+    // Tüm tab'ları güncelle (throttle: 600ms)
+    clearTimeout(painUpdTimer);
+    painUpdTimer = setTimeout(() => {
+      updatePainDynamic();
+      updateProximityMeter();
+      updateInfoStrip();
+      scheduleHeatDraw();
+      drawSweepMarkers();
+    }, 600);
+
+    clearTimeout(sigGenTimer);
+    sigGenTimer = setTimeout(generateSignals, 5000);
+
+    // Balina tespiti
+    if(!S.settings.whaleAlert) return;
+    const usd = price * parseFloat(data.q);
+    if(usd < 500000) return;
     const side = data.m ? 'SELL' : 'BUY';
     const ev = {
       time: new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      side, usd, price: parseFloat(data.p), ts: Date.now(),
+      side, usd, price, ts: Date.now(),
     };
     S.whaleLog.unshift(ev);
     if(S.whaleLog.length > 20) S.whaleLog.pop();
-
     showWhaleAlert(ev);
     const whaleTxt = `${side==='BUY'?'🟢':'🔴'} $${fmtVol(usd)}`;
     document.getElementById('iWhale').textContent = whaleTxt;
-    document.getElementById('iWhale2').textContent = whaleTxt;
+    if(document.getElementById('iWhale2')) document.getElementById('iWhale2').textContent = whaleTxt;
   };
 }
 

@@ -1089,7 +1089,7 @@ function connectWS(myId){
 // ══════════════════════════════════════════════════════
 function connectAggWS(myId){
   if(!S.settings.whaleAlert) return;
-  const url = `wss://fstream.binance.com/ws/${S.symbol.toLowerCase()}@aggTrade`;
+  const url = `wss://fstream.binance.com/ws/${S.symbol.toLowerCase()}@trade`;
   const newWs = new WebSocket(url);
 
   newWs.onopen = () => { if(myId!==loadId){newWs.close();return;} wsAgg=newWs; };

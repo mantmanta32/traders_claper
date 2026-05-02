@@ -675,12 +675,16 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 const STORE_KEY = 'liqmap_v5';
 function saveState(){
   try{
-    // BUG-7 FIX: Tetiklenmiş alarmları 24 saat sonra temizle
+    // Tetiklenmiş alarmları 24 saat sonra temizle
     const cutoff = Date.now() - 86400000;
     const cleanAlarms = S.alarms.filter(a => !a.triggered || (a.triggeredAt && a.triggeredAt > cutoff));
+    // sweepLog'u son 50 ile sınırla (storage şişmesin)
+    const sweepSnap = S.sweepLog.slice(0, 50);
     localStorage.setItem(STORE_KEY, JSON.stringify({
       symbol:S.symbol, tf:S.tf, settings:S.settings,
       setupHistory:S.setupHistory, alarms:cleanAlarms,
+      signalFilter:S.signalFilter, setupDir:S.setupDir,
+      sweepLog:sweepSnap,
     }));
   }catch(e){}
 }
@@ -694,9 +698,32 @@ function loadState(){
     if(d.settings) Object.assign(S.settings, d.settings);
     if(d.setupHistory) S.setupHistory = d.setupHistory;
     if(d.alarms) S.alarms = d.alarms;
+    if(d.signalFilter) S.signalFilter = d.signalFilter;
+    if(d.setupDir) S.setupDir = d.setupDir;
+    if(d.sweepLog) S.sweepLog = d.sweepLog;
   }catch(e){}
 }
-function clearStorage(){ localStorage.removeItem(STORE_KEY); showToast('✅ Ayarlar sıfırlandı'); }
+function applyLoadedState(){
+  // Symbol butonu
+  document.getElementById('symbolBtnText').textContent = S.symbol;
+  // TF butonu
+  document.querySelectorAll('.tfBtn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tf === S.tf);
+  });
+  // Setup yönü
+  setDir(S.setupDir);
+  // Sinyal filtresi
+  document.querySelectorAll('.filterChip').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === S.signalFilter);
+  });
+  // Sweep geçmişi
+  updateSweepFeed();
+}
+function clearStorage(){
+  localStorage.removeItem(STORE_KEY);
+  showToast('✅ Ayarlar sıfırlandı');
+  location.reload();
+}
 
 // ══════════════════════════════════════════════════════
 //  STATE
@@ -769,6 +796,7 @@ function initChart(){
   volumeSeries = chart.addHistogramSeries({
     priceFormat:{type:'volume'}, priceScaleId:'',
     scaleMargins:{top:0.82, bottom:0},
+    visible: S.settings.showVolume,
   });
   
   const ro = new ResizeObserver(entries => {
@@ -813,6 +841,7 @@ async function loadData(){
 
     candleSeries.setData(S.candles);
     volumeSeries.setData(buildVolData(S.candles));
+    volumeSeries.applyOptions({visible: S.settings.showVolume});
     chart.timeScale().fitContent();
     S.price = S.candles.at(-1).close;
     S.openP = S.candles.at(-1).open;
@@ -1149,6 +1178,7 @@ function checkSweep(candle, prevCandle){
     showSweepAlert(ev);
     updateSweepFeed();
     drawSweepMarkers();
+    saveState();
     fireAlarm('⚡ ' + ev.txt + ' @ ' + fmtP(zone.price), 'var(--red)');
 
     // Sweep sonrası sinyal üret (öncelikli)
@@ -1631,6 +1661,7 @@ function generateSignals(){
 
 function setSignalFilter(f, el){
   S.signalFilter = f;
+  saveState();
   document.querySelectorAll('.filterChip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSignals();
@@ -2000,6 +2031,7 @@ function setDir(d){
   document.getElementById('dirLong').classList.toggle('active', d==='long');
   document.getElementById('dirShort').classList.toggle('active', d==='short');
   calcSetup();
+  saveState();
 }
 
 function autoEntry(){ const nz=S.liqZones[0]; if(nz) document.getElementById('entryInput').value=(nz.price*(S.setupDir==='long'?1.0015:0.9985)).toFixed(6); else document.getElementById('entryInput').value=S.price.toFixed(6); calcSetup(); }
@@ -2214,12 +2246,15 @@ function initSettings(){
   ['heatmap','heatDecay','showSR','showLiq','showVolume','sweepDetect','whaleAlert','sweepMarkers'].forEach(key=>{
     const el=document.getElementById('tog_'+key); if(el) el.classList.toggle('on',S.settings[key]);
   });
+  // volumeSeries visible durumunu kayıtlı ayara göre uygula
+  if(volumeSeries) volumeSeries.applyOptions({visible:S.settings.showVolume});
 }
 
 function toggleSet(key){
   S.settings[key]=!S.settings[key];
   const el=document.getElementById('tog_'+key); if(el) el.classList.toggle('on',S.settings[key]);
   if(key==='showVolume') volumeSeries.applyOptions({visible:S.settings.showVolume});
+  else if(key==='whaleAlert'){ if(S.settings.whaleAlert) connectAggWS(loadId); }
   else if(S.candles.length) renderLines();
   if(key==='heatmap'||key==='heatDecay') scheduleHeatDraw();
   if(key==='sweepMarkers') drawSweepMarkers();
@@ -2305,6 +2340,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   initChart();
   initSettings();
   initScanLevFilter();
+  applyLoadedState();
   updateAlarmUI();
   renderSetupHistory();
   loadData();

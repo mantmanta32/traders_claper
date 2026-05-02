@@ -14,26 +14,27 @@
   --t1:#f0f0f8;--t2:#8888a0;--t3:#4a4a62;
   --blue:#3b82f6;--green:#22c55e;--red:#ef4444;
   --yellow:#f59e0b;--purple:#a78bfa;--orange:#fb923c;--cyan:#06b6d4;
-  --nav-h:56px;--top-h:52px;--strip-h:44px;
+  --nav-h:56px;--top-h:72px;--strip-h:44px;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 html,body{height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none}
 body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg1);color:var(--t1);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
 
 /* TOP BAR */
-#topBar{height:var(--top-h);min-height:var(--top-h);max-height:var(--top-h);background:var(--bg2);border-bottom:1px solid var(--border);display:grid;grid-template-columns:auto minmax(0,1.4fr) auto;align-items:center;padding:0 8px;gap:6px;flex-shrink:0;overflow:hidden;z-index:100}
-#symbolBtn{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:5px 9px;cursor:pointer;transition:opacity .15s,transform .15s;min-width:0;max-width:115px;overflow:hidden}
+#topBar{height:var(--top-h);min-height:var(--top-h);max-height:var(--top-h);background:var(--bg2);border-bottom:1px solid var(--border);display:grid;grid-template-columns:auto 1fr;grid-template-rows:1fr 1fr;align-items:center;padding:0 8px;gap:0 6px;flex-shrink:0;overflow:hidden;z-index:100}
+#symbolBtn{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:5px 9px;cursor:pointer;transition:opacity .15s,transform .15s;min-width:0;max-width:115px;overflow:hidden;grid-row:1;grid-column:1;align-self:end;margin-bottom:2px}
 #symbolBtn:active{opacity:.7;transform:scale(.96)}
 #symbolBtnText{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
-#priceWrap{display:flex;flex-direction:column;justify-content:center;min-width:0;overflow:hidden;flex-shrink:1}
-#topPrice{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.4px}
-#topMeta{display:flex;align-items:center;gap:4px;margin-top:1px;min-width:0}
-#topChange{font-size:10px;font-weight:600;white-space:nowrap}
+#priceWrap{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;grid-row:1;grid-column:2;align-self:end;margin-bottom:2px}
+#topPrice{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.4px}
+#topMeta{display:flex;align-items:center;gap:4px;flex-shrink:0}
+#topChange{font-size:11px;font-weight:600;white-space:nowrap}
 #liveDot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;transition:background .3s,box-shadow .3s}
 #liveDot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:dotBlink 2s infinite}
 @keyframes dotBlink{0%,100%{opacity:1}50%{opacity:.3}}
-#tfRow{display:flex;gap:2px;align-items:center;flex-shrink:0}
-.tfBtn{padding:4px 6px;border-radius:6px;font-size:10px;font-weight:600;color:var(--t3);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap}
+#tfRow{display:flex;gap:2px;align-items:center;flex-shrink:0;grid-row:2;grid-column:1/3;align-self:start;margin-top:2px;overflow-x:auto;padding-bottom:2px}
+#tfRow::-webkit-scrollbar{display:none}
+.tfBtn{padding:4px 8px;border-radius:6px;font-size:10px;font-weight:600;color:var(--t3);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
 .tfBtn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 .tfBtn:active{transform:scale(.88)}
 
@@ -67,12 +68,17 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg1);color:va
 .fabItem:active{opacity:.7;transform:scale(.96)}
 
 /* INFO STRIP */
-#infoStrip{height:var(--strip-h);min-height:var(--strip-h);background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 6px;overflow-x:auto;overflow-y:hidden;flex-shrink:0;-webkit-overflow-scrolling:touch}
-#infoStrip::-webkit-scrollbar{display:none}
-.iCell{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 7px;flex:1 1 0;min-width:48px;gap:1px}
+#infoStrip{height:var(--strip-h);min-height:var(--strip-h);background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;overflow:hidden;flex-shrink:0;position:relative}
+#infoStrip::before,#infoStrip::after{content:'';position:absolute;top:0;bottom:0;width:18px;z-index:2;pointer-events:none}
+#infoStrip::before{left:0;background:linear-gradient(to right,var(--bg2),transparent)}
+#infoStrip::after{right:0;background:linear-gradient(to left,var(--bg2),transparent)}
+#infoStripTrack{display:flex;align-items:center;animation:stripScroll 28s linear infinite;will-change:transform}
+#infoStripTrack:hover{animation-play-state:paused}
+@keyframes stripScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.iCell{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 10px;flex-shrink:0;gap:1px}
 .iSep{width:1px;height:18px;background:var(--border);flex-shrink:0}
 .iLbl{font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
-.iVal{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-variant-numeric:tabular-nums}
+.iVal{font-size:11px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* SCROLL PAGES */
 .scrollPage{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px;padding-bottom:calc(16px + var(--safe-b));display:none;flex-direction:column;gap:10px}
@@ -377,25 +383,48 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       </div>
     </div>
     <div id="infoStrip">
-      <div class="iCell"><div class="iLbl">Yakın S</div><div class="iVal up" id="iNearS">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">Yakın R</div><div class="iVal dn" id="iNearR">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">Pain</div><div class="iVal" id="iPain" style="color:var(--yellow)">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">Pain Trend</div><div class="iVal" id="iPainTrend" style="color:var(--cyan)">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">Liq%</div><div class="iVal" id="iNearLiq" style="color:var(--purple)">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">Güçlü</div><div class="iVal" id="iStrong" style="color:var(--blue)">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">24s Yük</div><div class="iVal up" id="i24H">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">24s Düş</div><div class="iVal dn" id="i24L">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">Hacim</div><div class="iVal" id="i24V" style="color:var(--cyan)">—</div></div>
-      <div class="iSep"></div>
-      <div class="iCell"><div class="iLbl">Balina</div><div class="iVal" id="iWhale" style="color:var(--cyan)">—</div></div>
+      <div id="infoStripTrack">
+        <div class="iCell"><div class="iLbl">Yakın S</div><div class="iVal up" id="iNearS">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Yakın R</div><div class="iVal dn" id="iNearR">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Pain</div><div class="iVal" id="iPain" style="color:var(--yellow)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Pain Trend</div><div class="iVal" id="iPainTrend" style="color:var(--cyan)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Liq%</div><div class="iVal" id="iNearLiq" style="color:var(--purple)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Güçlü</div><div class="iVal" id="iStrong" style="color:var(--blue)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">24s Yük</div><div class="iVal up" id="i24H">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">24s Düş</div><div class="iVal dn" id="i24L">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Hacim</div><div class="iVal" id="i24V" style="color:var(--cyan)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Balina</div><div class="iVal" id="iWhale" style="color:var(--cyan)">—</div></div>
+        <!-- Duplicate for seamless loop -->
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Yakın S</div><div class="iVal up" id="iNearS2">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Yakın R</div><div class="iVal dn" id="iNearR2">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Pain</div><div class="iVal" id="iPain2" style="color:var(--yellow)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Pain Trend</div><div class="iVal" id="iPainTrend2" style="color:var(--cyan)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Liq%</div><div class="iVal" id="iNearLiq2" style="color:var(--purple)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Güçlü</div><div class="iVal" id="iStrong2" style="color:var(--blue)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">24s Yük</div><div class="iVal up" id="i24H2">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">24s Düş</div><div class="iVal dn" id="i24L2">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Hacim</div><div class="iVal" id="i24V2" style="color:var(--cyan)">—</div></div>
+        <div class="iSep"></div>
+        <div class="iCell"><div class="iLbl">Balina</div><div class="iVal" id="iWhale2" style="color:var(--cyan)">—</div></div>
+      </div>
     </div>
   </div>
 
@@ -1054,7 +1083,9 @@ function connectAggWS(myId){
     if(S.whaleLog.length > 20) S.whaleLog.pop();
 
     showWhaleAlert(ev);
-    document.getElementById('iWhale').textContent = `${side==='BUY'?'🟢':'🔴'} $${fmtVol(usd)}`;
+    const whaleTxt = `${side==='BUY'?'🟢':'🔴'} $${fmtVol(usd)}`;
+    document.getElementById('iWhale').textContent = whaleTxt;
+    document.getElementById('iWhale2').textContent = whaleTxt;
   };
 }
 
@@ -1298,10 +1329,14 @@ function updatePainDynamic(){
 
   document.getElementById('painBadge').style.display = 'flex';
   document.getElementById('painBadgeTxt').textContent = isLong ? `📉${lPct.toFixed(0)}%` : `📈${sPct.toFixed(0)}%`;
-  document.getElementById('iPain').textContent = isLong ? '📉 Aşağı' : '📈 Yukarı';
+  const painTxt = isLong ? '📉 Aşağı' : '📈 Yukarı';
+  document.getElementById('iPain').textContent = painTxt;
+  document.getElementById('iPain2').textContent = painTxt;
 
   const nz = S.liqZones[0];
-  document.getElementById('iNearLiq').textContent = nz ? nz.dist.toFixed(2)+'%' : '—';
+  const liqTxt = nz ? nz.dist.toFixed(2)+'%' : '—';
+  document.getElementById('iNearLiq').textContent = liqTxt;
+  document.getElementById('iNearLiq2').textContent = liqTxt;
 
   // Pain history
   S.painHistory.push({t:Date.now(), ls, ss, price:S.price});
@@ -1326,8 +1361,11 @@ function calcPainTrend(){
   const trendEl = document.getElementById('painTrendLabel');
   trendEl.textContent = trendStr;
   trendEl.style.color = trendColor;
-  document.getElementById('iPainTrend').textContent = isBearTrend ? '📉' : Math.abs(painTrendVal)<1 ? '→' : '📈';
+  const ptTxt = isBearTrend ? '📉' : Math.abs(painTrendVal)<1 ? '→' : '📈';
+  document.getElementById('iPainTrend').textContent = ptTxt;
   document.getElementById('iPainTrend').style.color = trendColor;
+  document.getElementById('iPainTrend2').textContent = ptTxt;
+  document.getElementById('iPainTrend2').style.color = trendColor;
 }
 
 function calcPainDetailed(){
@@ -2069,13 +2107,25 @@ function updateInfoStrip(){
   const p=S.price;
   const sup=S.srLevels.filter(l=>l.type==='support'&&l.price<p);
   const res=S.srLevels.filter(l=>l.type==='resistance'&&l.price>p);
-  document.getElementById('iNearS').textContent=sup.at(-1)?fmtP(sup.at(-1).price):'—';
-  document.getElementById('iNearR').textContent=res[0]?fmtP(res[0].price):'—';
-  document.getElementById('i24H').textContent=S.high24?fmtP(S.high24):'—';
-  document.getElementById('i24L').textContent=S.low24?fmtP(S.low24):'—';
-  document.getElementById('i24V').textContent=S.vol24?fmtVol(S.vol24):'—';
+  const nearS=sup.at(-1)?fmtP(sup.at(-1).price):'—';
+  const nearR=res[0]?fmtP(res[0].price):'—';
+  const h24=S.high24?fmtP(S.high24):'—';
+  const l24=S.low24?fmtP(S.low24):'—';
+  const v24=S.vol24?fmtVol(S.vol24):'—';
   const strong=[...S.srLevels].sort((a,b)=>b.strength-a.strength)[0];
-  document.getElementById('iStrong').textContent=strong?fmtP(strong.price):'—';
+  const strongTxt=strong?fmtP(strong.price):'—';
+  document.getElementById('iNearS').textContent=nearS;
+  document.getElementById('iNearR').textContent=nearR;
+  document.getElementById('i24H').textContent=h24;
+  document.getElementById('i24L').textContent=l24;
+  document.getElementById('i24V').textContent=v24;
+  document.getElementById('iStrong').textContent=strongTxt;
+  document.getElementById('iNearS2').textContent=nearS;
+  document.getElementById('iNearR2').textContent=nearR;
+  document.getElementById('i24H2').textContent=h24;
+  document.getElementById('i24L2').textContent=l24;
+  document.getElementById('i24V2').textContent=v24;
+  document.getElementById('iStrong2').textContent=strongTxt;
 }
 
 function updateLevelsPage(){
@@ -2258,6 +2308,17 @@ window.addEventListener('DOMContentLoaded',()=>{
   updateAlarmUI();
   renderSetupHistory();
   loadData();
+  // Kayan strip: track genişliğine göre animasyon süresini ayarla
+  const track = document.getElementById('infoStripTrack');
+  if(track){
+    const adjustStripSpeed = () => {
+      const w = track.scrollWidth / 2; // yarısı bir kopya
+      const speed = Math.max(15, w / 40); // ~40px/s
+      track.style.animationDuration = speed.toFixed(1) + 's';
+    };
+    adjustStripSpeed();
+    new ResizeObserver(adjustStripSpeed).observe(track);
+  }
 });
 </script>
 </body>

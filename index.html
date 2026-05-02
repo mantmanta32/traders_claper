@@ -297,6 +297,9 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .quickBtn:active{background:var(--bg5);color:var(--blue);transform:scale(.93)}
 .goBtn{width:100%;background:var(--blue);border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:700;padding:12px;cursor:pointer;font-family:'Inter',sans-serif}
 .goBtn:active{opacity:.8;transform:scale(.98)}
+.symSugItem{padding:9px 12px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background .15s}
+.symSugItem:active{background:var(--bg5)}
+.symSugItem span{font-size:10px;color:var(--t3)}
 /* Tools modal items */
 .toolItem{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);cursor:pointer}
 .toolItem:last-child{border-bottom:none}
@@ -637,10 +640,11 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 <div id="modal" onclick="if(event.target.id==='modal')closeModal()">
   <div class="modalSheet">
     <div class="modalHandle"></div>
-    <input class="searchInput" id="searchInput" placeholder="BTC, ETH, SOL..."
-      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+    <input class="searchInput" id="searchInput" placeholder="BTC, ETH, SOL, PEPE..."
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');filterSymbols(this.value)"
       onkeydown="if(event.key==='Enter')confirmSymbol()">
-    <div class="quickGrid">
+    <div id="symbolSuggestions" style="display:none;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;margin-bottom:10px"></div>
+    <div class="quickGrid" id="quickGrid">
       <div class="quickBtn" onclick="setQuick('BTC')">BTC</div>
       <div class="quickBtn" onclick="setQuick('ETH')">ETH</div>
       <div class="quickBtn" onclick="setQuick('SOL')">SOL</div>
@@ -828,9 +832,9 @@ async function loadData(){
   S.lastCandleForSweep = null;
 
   try{
-    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${S.symbol}&interval=${S.tf}&limit=200`);
+    const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S.symbol}&interval=${S.tf}&limit=200`);
     if(myId !== loadId) return;
-    if(!res.ok) throw new Error(`Sembol bulunamadı: ${S.symbol}`);
+    if(!res.ok) throw new Error(`${S.symbol} Binance Futures'ta bulunamadı`);
     const raw = await res.json();
     if(myId !== loadId) return;
 
@@ -879,7 +883,7 @@ async function loadData(){
 
 async function fetch24h(myId){
   try{
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${S.symbol}`);
+    const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${S.symbol}`);
     if(myId !== undefined && myId !== loadId) return;
     if(!res.ok) return;
     const d = await res.json();
@@ -904,7 +908,7 @@ async function fetchMultiTF(myId){
   try{
     for(const tf of MTF_LIST){
       if(myId !== loadId) return;
-      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${S.symbol}&interval=${tf}&limit=100`);
+      const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S.symbol}&interval=${tf}&limit=100`);
       if(!res.ok) continue;
       const raw = await res.json();
       const candles = raw.map(d => ({
@@ -1003,7 +1007,7 @@ function closeWS(){
 function connectWS(myId){
   if(ws && wsSymbol===S.symbol && wsTf===S.tf) return;
   wsSymbol=S.symbol; wsTf=S.tf;
-  const newWs = new WebSocket(`wss://stream.binance.com:9443/ws/${S.symbol.toLowerCase()}@kline_${S.tf}`);
+  const newWs = new WebSocket(`wss://fstream.binance.com/ws/${S.symbol.toLowerCase()}@kline_${S.tf}`);
 
   newWs.onopen = () => { if(myId!==loadId){newWs.close();return;} ws=newWs; setLiveDot(true); };
   newWs.onerror = () => setLiveDot(false);
@@ -1085,7 +1089,7 @@ function connectWS(myId){
 // ══════════════════════════════════════════════════════
 function connectAggWS(myId){
   if(!S.settings.whaleAlert) return;
-  const url = `wss://stream.binance.com:9443/ws/${S.symbol.toLowerCase()}@aggTrade`;
+  const url = `wss://fstream.binance.com/ws/${S.symbol.toLowerCase()}@aggTrade`;
   const newWs = new WebSocket(url);
 
   newWs.onopen = () => { if(myId!==loadId){newWs.close();return;} wsAgg=newWs; };
@@ -1795,7 +1799,7 @@ async function startScan(){
     document.getElementById('scanStatus').textContent = `Tarıyor: ${sym}...`;
     fill.style.width = ((i+1)/SCANNER_COINS.length*100)+'%';
     try{
-      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=15m&limit=100`);
+      const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=15m&limit=100`);
       if(!res.ok){ await sleep(300); continue; }
       const raw = await res.json();
       const candles = raw.map(d => ({time:d[0]/1000,open:+d[1],high:+d[2],low:+d[3],close:+d[4],volume:+d[5]}));
@@ -2285,13 +2289,73 @@ function gotoPage(pageId, navId){
 // ══════════════════════════════════════════════════════
 //  MODAL
 // ══════════════════════════════════════════════════════
-function openModal(){ document.getElementById('modal').classList.add('open'); setTimeout(()=>document.getElementById('searchInput').focus(),120); }
+// ══════════════════════════════════════════════════════
+//  FUTURES SEMBOL LİSTESİ
+// ══════════════════════════════════════════════════════
+let futuresSymbols = []; // [{symbol:'BTCUSDT', baseAsset:'BTC'}]
+
+async function loadFuturesSymbols(){
+  try{
+    const res = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
+    if(!res.ok) return;
+    const d = await res.json();
+    futuresSymbols = d.symbols
+      .filter(s => s.status === 'TRADING' && s.contractType === 'PERPETUAL')
+      .map(s => ({symbol: s.symbol, base: s.baseAsset}))
+      .sort((a,b) => a.symbol.localeCompare(b.symbol));
+  }catch(e){}
+}
+
+function filterSymbols(q){
+  const sug = document.getElementById('symbolSuggestions');
+  const qg  = document.getElementById('quickGrid');
+  if(!q || q.length < 1){
+    sug.style.display = 'none';
+    qg.style.display  = '';
+    return;
+  }
+  const matches = futuresSymbols.filter(s =>
+    s.symbol.startsWith(q) || s.base.startsWith(q)
+  ).slice(0, 8);
+
+  if(!matches.length){
+    sug.style.display = 'none';
+    qg.style.display  = '';
+    return;
+  }
+  qg.style.display = 'none';
+  sug.style.display = 'flex';
+  sug.innerHTML = matches.map(s =>
+    `<div class="symSugItem" onclick="pickSymbol('${s.symbol}')">
+      ${s.symbol} <span>${s.base}/USDT Perp</span>
+    </div>`
+  ).join('');
+}
+
+function pickSymbol(sym){
+  document.getElementById('searchInput').value = sym;
+  document.getElementById('symbolSuggestions').style.display = 'none';
+  document.getElementById('quickGrid').style.display = '';
+  closeModal();
+  S.symbol = sym; S.sweepLog = []; S.painHistory = [];
+  loadData();
+}
+
+function openModal(){
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('symbolSuggestions').style.display = 'none';
+  document.getElementById('quickGrid').style.display = '';
+  setTimeout(()=>document.getElementById('searchInput').focus(),120);
+  // Sembol listesi henüz yüklenmediyse çek
+  if(!futuresSymbols.length) loadFuturesSymbols();
+}
 function closeModal(){ document.getElementById('modal').classList.remove('open'); document.getElementById('searchInput').blur(); }
 function setQuick(sym){ document.getElementById('searchInput').value=sym; }
 function confirmSymbol(){
   let val=document.getElementById('searchInput').value.trim().toUpperCase();
   if(!val) return;
-  if(!val.endsWith('USDT')&&!val.endsWith('BTC')&&!val.endsWith('ETH')&&!val.endsWith('BNB')) val+='USDT';
+  // Futures'ta neredeyse tüm çiftler USDT ile biter
+  if(!val.endsWith('USDT')&&!val.endsWith('BUSD')&&!val.endsWith('BTC')&&!val.endsWith('ETH')) val+='USDT';
   closeModal(); S.symbol=val; S.sweepLog=[]; S.painHistory=[]; loadData();
 }
 
@@ -2343,6 +2407,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   applyLoadedState();
   updateAlarmUI();
   renderSetupHistory();
+  loadFuturesSymbols(); // Futures sembol listesini arka planda çek
   loadData();
   // Kayan strip: track genişliğine göre animasyon süresini ayarla
   const track = document.getElementById('infoStripTrack');

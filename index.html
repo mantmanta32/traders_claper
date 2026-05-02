@@ -1,1 +1,2234 @@
-https://github.com/mantmanta32/traders_claper
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LiqMap Pro v5</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg1:#0a0a0f;--bg2:#13131a;--bg3:#1a1a24;--bg4:#22222e;--bg5:#2a2a38;
+  --border:#2a2a38;--border2:#1e1e2a;
+  --t1:#f0f0f8;--t2:#8888a0;--t3:#4a4a62;
+  --blue:#3b82f6;--green:#22c55e;--red:#ef4444;
+  --yellow:#f59e0b;--purple:#a78bfa;--orange:#fb923c;--cyan:#06b6d4;
+  --nav-h:56px;--top-h:52px;--strip-h:44px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg1);color:var(--t1);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+/* TOP BAR */
+#topBar{height:var(--top-h);min-height:var(--top-h);max-height:var(--top-h);background:var(--bg2);border-bottom:1px solid var(--border);display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:0 10px;gap:8px;flex-shrink:0;overflow:hidden;z-index:100}
+#symbolBtn{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:5px 9px;cursor:pointer;transition:opacity .15s,transform .15s;min-width:0;max-width:115px;overflow:hidden}
+#symbolBtn:active{opacity:.7;transform:scale(.96)}
+#symbolBtnText{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+#priceWrap{display:flex;flex-direction:column;justify-content:center;min-width:0;overflow:hidden}
+#topPrice{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+#topMeta{display:flex;align-items:center;gap:4px;margin-top:1px;min-width:0}
+#topChange{font-size:10px;font-weight:600;white-space:nowrap}
+#liveDot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;transition:background .3s,box-shadow .3s}
+#liveDot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:dotBlink 2s infinite}
+@keyframes dotBlink{0%,100%{opacity:1}50%{opacity:.3}}
+#tfRow{display:flex;gap:2px;align-items:center;flex-shrink:0}
+.tfBtn{padding:4px 6px;border-radius:6px;font-size:10px;font-weight:600;color:var(--t3);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tfBtn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tfBtn:active{transform:scale(.88)}
+
+/* CONTENT */
+#content{flex:1;min-height:0;position:relative;overflow:hidden}
+.page{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+.page.active{display:flex}
+
+/* CHART PAGE */
+#chartWrap{flex:1;min-height:0;position:relative;overflow:hidden}
+#liveChart{position:absolute;inset:0;width:100%;height:100%}
+#heatCanvas{position:absolute;inset:0;pointer-events:none;z-index:3}
+#sweepCanvas{position:absolute;inset:0;pointer-events:none;z-index:4}
+#whaleCanvas{position:absolute;inset:0;pointer-events:none;z-index:5}
+#chartBadges{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:4px;z-index:6;pointer-events:none}
+.badge{display:inline-flex;align-items:center;gap:4px;background:rgba(8,8,14,.9);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;color:var(--t2);white-space:nowrap}
+.badge b{color:var(--t1);font-weight:700}
+#sweepAlertBox{position:absolute;top:8px;right:8px;z-index:7;display:none}
+.sweepAlertBadge{background:rgba(239,68,68,.15);border:1px solid var(--red);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;backdrop-filter:blur(6px);animation:sweepPulse .8s infinite alternate}
+@keyframes sweepPulse{from{opacity:.7}to{opacity:1}}
+#whaleAlert{position:absolute;bottom:54px;left:8px;right:8px;z-index:7;display:none}
+.whaleAlertBadge{background:rgba(6,182,212,.12);border:1px solid var(--cyan);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:var(--cyan);backdrop-filter:blur(6px)}
+
+/* FAB */
+#fab{position:absolute;bottom:54px;right:12px;z-index:8;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+#fabMain{width:44px;height:44px;border-radius:50%;background:var(--blue);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(59,130,246,.4);display:flex;align-items:center;justify-content:center;transition:all .2s}
+#fabMain:active{transform:scale(.92)}
+#fabMenu{display:none;flex-direction:column;gap:6px;align-items:flex-end}
+#fabMenu.open{display:flex}
+.fabItem{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:7px 12px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.fabItem:active{opacity:.7;transform:scale(.96)}
+
+/* INFO STRIP */
+#infoStrip{height:var(--strip-h);min-height:var(--strip-h);background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 6px;overflow-x:auto;overflow-y:hidden;flex-shrink:0;-webkit-overflow-scrolling:touch}
+#infoStrip::-webkit-scrollbar{display:none}
+.iCell{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 7px;flex:1 1 0;min-width:48px;gap:1px}
+.iSep{width:1px;height:18px;background:var(--border);flex-shrink:0}
+.iLbl{font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.iVal{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-variant-numeric:tabular-nums}
+
+/* SCROLL PAGES */
+.scrollPage{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px;padding-bottom:calc(16px + var(--safe-b));display:none;flex-direction:column;gap:10px}
+.scrollPage.active{display:flex}
+.scrollPage::-webkit-scrollbar{width:2px}
+.scrollPage::-webkit-scrollbar-thumb{background:var(--border);border-radius:1px}
+
+/* CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;flex-shrink:0}
+.cardHead{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.cardBadge{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700}
+
+/* LEVEL ROW */
+.lvRow{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2);gap:8px}
+.lvRow:last-child{border-bottom:none}
+.lvDot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.lvInfo{flex:1;min-width:0;overflow:hidden}
+.lvPrice{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lvMeta{font-size:9px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lvRight{flex-shrink:0;text-align:right}
+.lvDist{font-size:11px;font-weight:600;white-space:nowrap}
+.strBar{width:44px;height:3px;background:var(--border);border-radius:2px;margin-top:3px;overflow:hidden}
+.strFill{height:100%;border-radius:2px}
+/* Multi-TF badge */
+.tfBadges{display:flex;gap:3px;margin-top:2px;flex-wrap:wrap}
+.tfTag{font-size:8px;padding:1px 5px;border-radius:4px;font-weight:700;border:1px solid}
+
+/* PAIN CARD */
+.painCard{background:linear-gradient(135deg,#0d0d15,#141424);border:1px solid var(--border);border-radius:14px;padding:16px;flex-shrink:0;position:relative;overflow:hidden}
+.painCard::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at var(--px,50%) 50%,var(--pc,transparent) 0%,transparent 65%);opacity:.08;transition:all 1.2s ease;pointer-events:none}
+.painHead{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.painGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.painCell{background:var(--bg1);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border2);transition:border-color .4s}
+.painCell.hot{border-color:var(--hc,var(--border2))}
+.painCellLbl{font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px}
+.painCellVal{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.painCellSub{font-size:9px;color:var(--t3);margin-top:2px}
+.painBarWrap{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--border);margin-bottom:8px}
+.painBarL{background:linear-gradient(90deg,#ef4444,#dc2626);border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1);min-width:3px}
+.painBarS{background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:4px;flex:1;min-width:3px}
+.painGauge{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.painGaugeTxt{font-size:10px;font-weight:600}
+.painGaugeVal{font-size:12px;font-weight:800;padding:2px 10px;border-radius:20px;background:var(--bg1)}
+.dominantPill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid currentColor}
+.painNote{font-size:11px;color:var(--t2);text-align:center;line-height:1.6;margin-top:8px}
+/* Pain trend */
+.painTrendRow{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)}
+.painTrendLbl{font-size:10px;color:var(--t3)}
+.painTrendVal{font-size:11px;font-weight:700}
+#painMiniChart{width:100%;height:48px;margin-top:8px;border-radius:6px;overflow:hidden;background:var(--bg1);border:1px solid var(--border2)}
+
+/* LIQ ROW */
+.liqRow{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2);gap:8px;min-width:0}
+.liqRow:last-child{border-bottom:none}
+.liqBar{width:3px;height:32px;border-radius:2px;flex-shrink:0}
+.liqInfo{flex:1;min-width:0;overflow:hidden}
+.liqPrice{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.liqMeta{font-size:9px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.liqRight{flex-shrink:0;text-align:right}
+.liqDistVal{font-size:12px;font-weight:700;white-space:nowrap}
+.liqDistSub{font-size:9px;color:var(--t3)}
+.riskBar{width:36px;height:3px;background:var(--border);border-radius:2px;margin-top:3px;overflow:hidden;margin-left:auto}
+.riskFill{height:100%;border-radius:2px}
+.liqRow.near .liqPrice{animation:nearBlink 1s infinite alternate}
+@keyframes nearBlink{from{opacity:1}to{opacity:.4}}
+.cascadeZone{background:rgba(239,68,68,.06);border-radius:8px;padding:6px 10px;border:1px solid rgba(239,68,68,.25);margin-bottom:6px;font-size:10px;display:flex;align-items:center;gap:6px}
+
+/* SIGNAL */
+.signalSummary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.summaryCell{background:var(--bg3);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border2)}
+.summaryCellLbl{font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px}
+.summaryCellVal{font-size:18px;font-weight:800}
+.filterRow{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px}
+.filterRow::-webkit-scrollbar{display:none}
+.filterChip{padding:5px 11px;border-radius:20px;font-size:11px;font-weight:600;background:var(--bg3);border:1px solid var(--border);color:var(--t2);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.filterChip.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.filterChip:active{transform:scale(.93)}
+.signalCard{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;flex-shrink:0}
+.signalCard.long{border-left:3px solid var(--green)}
+.signalCard.short{border-left:3px solid var(--red)}
+.signalHeader{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:6px}
+.signalType{font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.signalMeta{font-size:9px;color:var(--t3);text-align:right;flex-shrink:0}
+.signalLevels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px}
+.signalLevel{background:var(--bg3);border-radius:8px;padding:8px;text-align:center;border:1px solid var(--border2)}
+.signalLevelLbl{font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px}
+.signalLevelVal{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.rrBar{width:100%;height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:3px}
+.rrFill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));border-radius:3px}
+.rrText{font-size:10px;color:var(--t2);display:flex;justify-content:space-between}
+.signalActions{display:flex;gap:6px;margin-top:10px}
+.sigBtn{flex:1;padding:7px;border-radius:8px;font-size:10px;font-weight:700;border:1px solid var(--border);background:var(--bg3);color:var(--t1);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.sigBtn:active{opacity:.7;transform:scale(.97)}
+.sigBtn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+/* Backtest badge */
+.btBadge{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:4px}
+
+/* SCANNER */
+.scannerHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.scanBtn{padding:8px 14px;background:var(--blue);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.scanBtn:active{opacity:.8;transform:scale(.97)}
+.scanBtn:disabled{opacity:.5}
+.scannerGrid{display:flex;flex-direction:column;gap:6px}
+.scanRow{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s}
+.scanRow:active{background:var(--bg4);transform:scale(.99)}
+.scanSymbol{font-size:13px;font-weight:700;width:60px;flex-shrink:0}
+.scanInfo{flex:1;min-width:0}
+.scanLiq{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scanDist{font-size:10px;color:var(--t3);margin-top:1px}
+.scanSetup{font-size:16px;flex-shrink:0}
+.scanProgressWrap{width:100%;height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;display:none}
+.scanProgressFill{height:100%;background:var(--blue);border-radius:2px;transition:width .3s}
+
+/* SETUP */
+.setupCard{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;flex-shrink:0}
+.dirBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.dirBtn{padding:11px;border-radius:10px;border:2px solid var(--border);background:var(--bg3);font-size:13px;font-weight:800;cursor:pointer;text-align:center;transition:all .2s;font-family:'Inter',sans-serif;color:var(--t2)}
+.dirBtn.active.long{border-color:var(--green);background:rgba(34,197,94,.12);color:var(--green)}
+.dirBtn.active.short{border-color:var(--red);background:rgba(239,68,68,.12);color:var(--red)}
+.dirBtn:active{transform:scale(.96)}
+.inputGroup{margin-bottom:10px}
+.inputLabel{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.autoBtn{font-size:9px;color:var(--blue);cursor:pointer;padding:2px 6px;background:rgba(59,130,246,.1);border-radius:4px}
+.numInput{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--t1);padding:9px 12px;font-size:13px;font-weight:600;outline:none;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;transition:border-color .2s}
+.numInput:focus{border-color:var(--blue)}
+.setupResults{background:var(--bg3);border-radius:10px;padding:12px;margin-top:10px;border:1px solid var(--border2)}
+.rrBig{font-size:26px;font-weight:800;text-align:center;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.setupResultRow{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border2)}
+.setupResultRow:last-child{border-bottom:none}
+.setupResultLbl{color:var(--t3)}
+.setupResultVal{font-weight:700;font-variant-numeric:tabular-nums}
+.riskMapWrap{background:var(--bg1);border-radius:8px;padding:12px;margin-top:10px;position:relative;height:44px;border:1px solid var(--border2)}
+.setupHistory{display:flex;flex-direction:column;gap:6px}
+.histItem{background:var(--bg3);border-radius:8px;padding:8px 10px;font-size:11px;border-left:3px solid;cursor:pointer}
+.histItem:active{opacity:.7}
+
+/* SWEEP FEED */
+.sweepFeed{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto}
+.sweepFeed::-webkit-scrollbar{width:2px}
+.sweepFeed::-webkit-scrollbar-thumb{background:var(--border)}
+.sweepItem{display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:8px;padding:7px 10px;border-left:3px solid;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+.sweepTime{font-size:9px;color:var(--t3);flex-shrink:0;font-variant-numeric:tabular-nums}
+.sweepTxt{font-size:11px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sweepPrc{font-size:10px;color:var(--t2);flex-shrink:0;font-variant-numeric:tabular-nums}
+
+/* PROXIMITY METER */
+.proxMeter{background:var(--bg3);border-radius:10px;padding:12px;border:1px solid var(--border2)}
+.proxTitle{font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:8px}
+.proxRow{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.proxRow:last-child{margin-bottom:0}
+.proxLbl{font-size:10px;width:56px;flex-shrink:0}
+.proxBarWrap{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.proxBarFill{height:100%;border-radius:3px;transition:width .5s}
+.proxVal{font-size:10px;font-weight:700;width:52px;text-align:right;flex-shrink:0;white-space:nowrap}
+
+/* STAT GRID */
+.statGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.statCell{background:var(--bg3);border-radius:10px;padding:10px;border:1px solid var(--border2)}
+.statCellLbl{font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px}
+.statCellVal{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+
+/* SETTINGS */
+.setSection{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;flex-shrink:0}
+.setHead{padding:9px 14px;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;background:var(--bg3);border-bottom:1px solid var(--border)}
+.setRow{display:flex;align-items:center;padding:11px 14px;gap:10px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background .15s;min-width:0}
+.setRow:last-child{border-bottom:none}
+.setRow:active{background:var(--bg4)}
+.setIcon{width:32px;height:32px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.setLbl{flex:1;min-width:0}
+.setName{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.setDesc{font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tog{width:40px;height:23px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background .25s;flex-shrink:0}
+.tog.on{background:var(--blue)}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tog.on::after{transform:translateX(17px)}
+.levGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px 14px}
+@media(max-width:360px){.levGrid{grid-template-columns:repeat(2,1fr)}}
+.levCard{background:var(--bg3);border:2px solid var(--border);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s,transform .15s}
+.levCard.on{border-color:currentColor;background:color-mix(in srgb,currentColor 10%,var(--bg3))}
+.levCard:active{transform:scale(.92)}
+.levX{font-size:14px;font-weight:800}
+.levP{font-size:9px;color:var(--t3);margin-top:1px}
+.sliderRow{padding:10px 14px;display:flex;align-items:center;gap:8px}
+.sliderLbl{font-size:10px;color:var(--t3);white-space:nowrap}
+.sliderVal{font-size:13px;font-weight:700;color:var(--blue);width:26px;text-align:center;flex-shrink:0}
+input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:var(--border);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--blue);box-shadow:0 0 7px rgba(59,130,246,.4);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--blue);border:none}
+
+/* BOTTOM NAV — 5 sekme */
+#bottomNav{height:calc(var(--nav-h) + var(--safe-b));padding-bottom:var(--safe-b);background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding-left:2px;padding-right:2px;flex-shrink:0;z-index:100}
+.navItem{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px 0;cursor:pointer;border-radius:10px;transition:transform .15s;position:relative;-webkit-user-select:none;user-select:none}
+.navItem:active{transform:scale(.88)}
+.navLine{position:absolute;top:0;width:18px;height:2px;background:var(--blue);border-radius:0 0 2px 2px;opacity:0;transition:opacity .2s}
+.navItem.active .navLine{opacity:1}
+.navIco{font-size:19px;line-height:1;transition:transform .2s}
+.navItem.active .navIco{transform:scale(1.1)}
+.navLbl{font-size:9px;font-weight:600;color:var(--t3);transition:color .2s}
+.navItem.active .navLbl{color:var(--blue)}
+.navBadge{position:absolute;top:3px;right:calc(50% - 18px);background:var(--red);color:#fff;font-size:8px;font-weight:800;min-width:14px;height:14px;border-radius:7px;display:none;align-items:center;justify-content:center;padding:0 3px}
+.navBadge.show{display:flex}
+
+/* MODALS */
+#modal,#alarmModal,#toolsModal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:200;display:none;align-items:flex-end;justify-content:center}
+#modal.open,#alarmModal.open,#toolsModal.open{display:flex}
+.modalSheet{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding:14px 14px calc(14px + var(--safe-b));border-top:1px solid var(--border);animation:slideUp .25s ease}
+.modalSheet::-webkit-scrollbar{display:none}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.modalHandle{width:32px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modalTitle{font-size:13px;font-weight:700;margin-bottom:12px}
+.searchInput{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--t1);padding:10px 14px;font-size:15px;font-weight:600;outline:none;letter-spacing:.8px;margin-bottom:12px;font-family:'Inter',sans-serif;transition:border-color .2s}
+.searchInput:focus{border-color:var(--blue)}
+.quickGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.quickBtn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 4px;text-align:center;cursor:pointer;font-size:11px;font-weight:700;color:var(--t2);font-family:'Inter',sans-serif;transition:all .15s}
+.quickBtn:active{background:var(--bg5);color:var(--blue);transform:scale(.93)}
+.goBtn{width:100%;background:var(--blue);border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:700;padding:12px;cursor:pointer;font-family:'Inter',sans-serif}
+.goBtn:active{opacity:.8;transform:scale(.98)}
+/* Tools modal items */
+.toolItem{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);cursor:pointer}
+.toolItem:last-child{border-bottom:none}
+.toolItem:active{opacity:.7}
+.toolIcon{font-size:22px;width:36px;text-align:center;flex-shrink:0}
+.toolInfo{flex:1;min-width:0}
+.toolName{font-size:13px;font-weight:600}
+.toolDesc{font-size:10px;color:var(--t3);margin-top:2px}
+/* Alarm items */
+.alarmItem{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2)}
+.alarmItem:last-child{border-bottom:none}
+.alarmDot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alarmInfo{flex:1;min-width:0}
+.alarmLabel{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alarmSub{font-size:10px;color:var(--t3);margin-top:1px}
+.alarmDel{font-size:16px;color:var(--red);cursor:pointer;flex-shrink:0;padding:4px}
+
+/* LOADING / TOAST */
+#loadingOverlay{position:fixed;inset:0;background:rgba(10,10,15,.87);backdrop-filter:blur(4px);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#loadingOverlay.show{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loadTxt{font-size:12px;color:var(--t2)}
+#toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 10px);left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 16px;font-size:12px;font-weight:600;z-index:400;opacity:0;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;text-align:center;transition:opacity .25s,transform .25s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#screenFlash{position:fixed;inset:0;z-index:500;pointer-events:none;opacity:0;transition:opacity .1s}
+
+.emptyState{font-size:11px;color:var(--t3);text-align:center;padding:16px 0}
+.up{color:var(--green)}.dn{color:var(--red)}
+</style>
+</head>
+<body>
+<div id="screenFlash"></div>
+
+<!-- TOP BAR -->
+<div id="topBar">
+  <div id="symbolBtn" onclick="openModal()">
+    <span style="font-size:13px;flex-shrink:0">📈</span>
+    <span id="symbolBtnText">BTCUSDT</span>
+    <span style="color:var(--t3);font-size:9px;flex-shrink:0">▾</span>
+  </div>
+  <div id="priceWrap">
+    <div id="topPrice">—</div>
+    <div id="topMeta"><div id="topChange" class="up">+0.00%</div><div id="liveDot"></div></div>
+  </div>
+  <div id="tfRow">
+    <div class="tfBtn" data-tf="1m">1m</div>
+    <div class="tfBtn" data-tf="5m">5m</div>
+    <div class="tfBtn" data-tf="15m">15m</div>
+    <div class="tfBtn active" data-tf="1h">1h</div>
+    <div class="tfBtn" data-tf="4h">4h</div>
+    <div class="tfBtn" data-tf="1d">1g</div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div id="content">
+
+  <!-- CHART PAGE -->
+  <div class="page active" id="chartPage">
+    <div id="chartWrap">
+      <div id="liveChart"></div>
+      <canvas id="heatCanvas"></canvas>
+      <canvas id="sweepCanvas"></canvas>
+      <canvas id="whaleCanvas"></canvas>
+      <div id="chartBadges">
+        <div class="badge">📍 <b id="srBadge">0</b> S/R</div>
+        <div class="badge">💀 <b id="liqBadge">0</b> Liq</div>
+        <div class="badge" id="heatBadge">🌡️ <b>Açık</b></div>
+        <div class="badge" id="painBadge" style="display:none">⚡ <b id="painBadgeTxt">—</b></div>
+        <div class="badge" id="mtfBadge" style="display:none">📊 <b id="mtfBadgeTxt">—</b></div>
+      </div>
+      <div id="sweepAlertBox"><div class="sweepAlertBadge" id="sweepAlertTxt">⚡ SWEEP!</div></div>
+      <div id="whaleAlert"><div class="whaleAlertBadge" id="whaleAlertTxt">🐳 BALINA!</div></div>
+      <div id="fab">
+        <div id="fabMenu">
+          <div class="fabItem" onclick="fabAction('signal')">📡 Sinyal Üret</div>
+          <div class="fabItem" onclick="fabAction('alarm')">🔔 Alarm Kur</div>
+          <div class="fabItem" onclick="fabAction('setup')">🎯 Setup Builder</div>
+          <div class="fabItem" onclick="fabAction('backtest')">🔬 Backtest</div>
+          <div class="fabItem" onclick="fabAction('mtf')">📊 Multi-TF</div>
+        </div>
+        <button id="fabMain" onclick="toggleFab()">⚡</button>
+      </div>
+    </div>
+    <div id="infoStrip">
+      <div class="iCell"><div class="iLbl">Yakın S</div><div class="iVal up" id="iNearS">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">Yakın R</div><div class="iVal dn" id="iNearR">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">Pain</div><div class="iVal" id="iPain" style="color:var(--yellow)">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">Pain Trend</div><div class="iVal" id="iPainTrend" style="color:var(--cyan)">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">Liq%</div><div class="iVal" id="iNearLiq" style="color:var(--purple)">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">Güçlü</div><div class="iVal" id="iStrong" style="color:var(--blue)">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">24s Yük</div><div class="iVal up" id="i24H">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">24s Düş</div><div class="iVal dn" id="i24L">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">Hacim</div><div class="iVal" id="i24V" style="color:var(--cyan)">—</div></div>
+      <div class="iSep"></div>
+      <div class="iCell"><div class="iLbl">Balina</div><div class="iVal" id="iWhale" style="color:var(--cyan)">—</div></div>
+    </div>
+  </div>
+
+  <!-- LEVELS PAGE -->
+  <div class="page scrollPage" id="levelsPage">
+    <div class="card" id="mtfCard" style="display:none">
+      <div class="cardHead"><span>📊 Multi-TF Confluence</span><span class="cardBadge" id="mtfCount" style="background:rgba(59,130,246,.1);color:var(--blue)">0</span></div>
+      <div id="mtfList"><div class="emptyState">MTF analizi yükleniyor...</div></div>
+    </div>
+    <div class="card">
+      <div class="cardHead"><span>🔴 Direnç</span><span class="cardBadge" id="resCount" style="background:rgba(239,68,68,.1);color:var(--red)">0</span></div>
+      <div id="resList"><div class="emptyState">Analiz bekleniyor...</div></div>
+    </div>
+    <div class="card">
+      <div class="cardHead"><span>🟢 Destek</span><span class="cardBadge" id="supCount" style="background:rgba(34,197,94,.1);color:var(--green)">0</span></div>
+      <div id="supList"><div class="emptyState">Analiz bekleniyor...</div></div>
+    </div>
+  </div>
+
+  <!-- LIQ PAGE -->
+  <div class="page scrollPage" id="liqPage">
+    <div class="painCard" id="painCard">
+      <div class="painHead"><span>⚡ Pain Index</span><span style="font-size:10px;color:var(--t3)">CANLI</span></div>
+      <div class="painGrid">
+        <div class="painCell" id="painCellLong"><div class="painCellLbl">🔴 Long Liq</div><div class="painCellVal dn" id="painLong">—</div><div class="painCellSub" id="painLongSub">—</div></div>
+        <div class="painCell" id="painCellShort"><div class="painCellLbl">🟢 Short Liq</div><div class="painCellVal up" id="painShort">—</div><div class="painCellSub" id="painShortSub">—</div></div>
+      </div>
+      <div class="painBarWrap"><div class="painBarL" id="painBarL" style="width:50%"></div><div class="painBarS"></div></div>
+      <div class="painGauge" style="margin-top:8px">
+        <span class="painGaugeTxt" style="color:var(--red)">Long</span>
+        <div class="painGaugeVal" id="painScore">50/50</div>
+        <span class="painGaugeTxt" style="color:var(--green)">Short</span>
+      </div>
+      <div style="text-align:center;margin-bottom:4px"><div class="dominantPill" id="dominantPill">Analiz bekleniyor</div></div>
+      <div class="painNote" id="painNote">—</div>
+      <div class="painTrendRow">
+        <span class="painTrendLbl">Pain Trendi:</span>
+        <span class="painTrendVal" id="painTrendLabel">—</span>
+      </div>
+      <canvas id="painMiniChart" height="48"></canvas>
+    </div>
+    <div class="proxMeter" id="proxMeter" style="display:none">
+      <div class="proxTitle">📏 Kaldıraç Yakınlık Ölçer</div>
+      <div id="proxRows"></div>
+    </div>
+    <div class="card" id="cascadeCard" style="display:none">
+      <div class="cardHead"><span>💣 Cascade Zonlar</span><span class="cardBadge" id="cascadeCount" style="background:rgba(239,68,68,.1);color:var(--red)">0</span></div>
+      <div id="cascadeList"></div>
+    </div>
+    <div class="card" id="liqStatsCard" style="display:none">
+      <div class="cardHead">📊 İstatistikler</div>
+      <div class="statGrid" id="liqStats"></div>
+    </div>
+    <div class="card" id="backtestCard" style="display:none">
+      <div class="cardHead"><span>🔬 Sweep Backtest</span><span style="font-size:10px;color:var(--t3)">Son 200 mum</span></div>
+      <div id="backtestResults"></div>
+    </div>
+    <div class="card" id="sweepCard">
+      <div class="cardHead"><span>⚡ Sweep Geçmişi</span><span class="cardBadge" id="sweepCount" style="background:rgba(239,68,68,.1);color:var(--red)">0</span></div>
+      <div class="sweepFeed" id="sweepFeed"><div class="emptyState">Henüz sweep yok</div></div>
+    </div>
+    <div class="card">
+      <div class="cardHead"><span>💀 Liq Zonları</span><span class="cardBadge" id="liqZoneCount" style="background:rgba(167,139,250,.1);color:var(--purple)">0</span></div>
+      <div id="liqList"><div class="emptyState">Analiz bekleniyor...</div></div>
+    </div>
+  </div>
+
+  <!-- SIGNAL PAGE -->
+  <div class="page scrollPage" id="signalPage">
+    <div class="signalSummary">
+      <div class="summaryCell"><div class="summaryCellLbl">🟢 Long</div><div class="summaryCellVal up" id="sigLongCount">0</div></div>
+      <div class="summaryCell"><div class="summaryCellLbl">🔴 Short</div><div class="summaryCellVal dn" id="sigShortCount">0</div></div>
+      <div class="summaryCell"><div class="summaryCellLbl">⚡ Sweep</div><div class="summaryCellVal" id="sigSweepCount" style="color:var(--yellow)">0</div></div>
+    </div>
+    <div class="filterRow">
+      <div class="filterChip active" data-filter="all" onclick="setSignalFilter('all',this)">Tümü</div>
+      <div class="filterChip" data-filter="strong" onclick="setSignalFilter('strong',this)">💪 Güçlü 7+</div>
+      <div class="filterChip" data-filter="long" onclick="setSignalFilter('long',this)">🟢 Long</div>
+      <div class="filterChip" data-filter="short" onclick="setSignalFilter('short',this)">🔴 Short</div>
+      <div class="filterChip" data-filter="sweep" onclick="setSignalFilter('sweep',this)">⚡ Sweep</div>
+    </div>
+    <div id="signalList"><div class="emptyState">Veri bekleniyor...</div></div>
+  </div>
+
+  <!-- TOOLS PAGE (Scanner + Setup birleşik) -->
+  <div class="page scrollPage" id="toolsPage">
+    <!-- Scanner -->
+    <div class="setupCard">
+      <div class="scannerHeader">
+        <div>
+          <div style="font-size:13px;font-weight:700">🔍 Multi-Coin Scanner</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:2px" id="scanStatus">Tarama yapılmadı</div>
+        </div>
+        <button class="scanBtn" onclick="startScan()" id="scanBtn">▶ Tara</button>
+      </div>
+      <div class="scanProgressWrap" id="scanProgressWrap"><div class="scanProgressFill" id="scanProgressFill" style="width:0%"></div></div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap" id="scanLevFilter"></div>
+    </div>
+    <div class="scannerGrid" id="scannerGrid"><div class="emptyState">Tarama başlatın</div></div>
+
+    <!-- Setup Builder -->
+    <div style="font-size:12px;font-weight:700;color:var(--t2);padding:4px 0">🎯 Setup Builder</div>
+    <div class="setupCard">
+      <div class="dirBtns">
+        <div class="dirBtn active long" id="dirLong" onclick="setDir('long')">🟢 LONG</div>
+        <div class="dirBtn short" id="dirShort" onclick="setDir('short')">🔴 SHORT</div>
+      </div>
+      <div class="inputGroup">
+        <div class="inputLabel">Entry<span class="autoBtn" onclick="autoEntry()">⚡ Otomatik</span></div>
+        <input class="numInput" id="entryInput" type="number" placeholder="0.00" oninput="calcSetup()">
+      </div>
+      <div class="inputGroup">
+        <div class="inputLabel">Stop Loss<span class="autoBtn" onclick="autoStop()">⚡ SR'dan al</span></div>
+        <input class="numInput" id="stopInput" type="number" placeholder="0.00" oninput="calcSetup()">
+      </div>
+      <div class="inputGroup">
+        <div class="inputLabel">Take Profit<span class="autoBtn" onclick="autoTarget()">⚡ Hesapla</span></div>
+        <input class="numInput" id="targetInput" type="number" placeholder="0.00" oninput="calcSetup()">
+      </div>
+      <div class="inputGroup">
+        <div class="inputLabel">Sermaye ($)</div>
+        <input class="numInput" id="capitalInput" type="number" placeholder="1000" value="1000" oninput="calcSetup()">
+      </div>
+      <div class="setupResults" id="setupResults" style="display:none">
+        <div class="rrBig" id="rrBig">—</div>
+        <div class="riskMapWrap" id="riskMap"></div>
+        <div id="setupResultRows" style="margin-top:10px"></div>
+        <div style="display:flex;gap:6px;margin-top:12px">
+          <button class="sigBtn" onclick="copySetup()">📋</button>
+          <button class="sigBtn primary" onclick="saveSetup()">💾 Kaydet</button>
+          <button class="sigBtn" onclick="alarmSetup()">🔔</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="setupHistCard" style="display:none">
+      <div class="cardHead">📂 Kayıtlı Setuplar</div>
+      <div class="setupHistory" id="setupHistory"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page scrollPage" id="settingsPage">
+    <div class="setSection">
+      <div class="setHead">⚡ Kaldıraç Seçimi</div>
+      <div class="levGrid" id="levGrid"></div>
+    </div>
+    <div class="setSection">
+      <div class="setHead">📊 S/R Hassasiyeti</div>
+      <div class="sliderRow">
+        <span class="sliderLbl">Az</span><input type="range" id="srSlider" min="2" max="10" value="4">
+        <span class="sliderLbl">Çok</span><div class="sliderVal" id="srSliderVal">4</div>
+      </div>
+    </div>
+    <div class="setSection">
+      <div class="setHead">🌡️ Isı Haritası</div>
+      <div class="setRow" onclick="toggleSet('heatmap')"><div class="setIcon">🌡️</div><div class="setLbl"><div class="setName">Isı Haritası</div><div class="setDesc">Likidasyon yoğunluk görselleştirmesi</div></div><div class="tog on" id="tog_heatmap"></div></div>
+      <div class="setRow" onclick="toggleSet('heatDecay')"><div class="setIcon">⏱️</div><div class="setLbl"><div class="setName">Zaman Çürümesi</div><div class="setDesc">Zayıf seviyeler daha soluk</div></div><div class="tog on" id="tog_heatDecay"></div></div>
+      <div class="sliderRow"><span class="sliderLbl">Opaklık</span><input type="range" id="heatOpacity" min="10" max="100" value="72"><div class="sliderVal" id="heatOpacityVal">72</div></div>
+    </div>
+    <div class="setSection">
+      <div class="setHead">🎨 Görünüm</div>
+      <div class="setRow" onclick="toggleSet('showSR')"><div class="setIcon">📍</div><div class="setLbl"><div class="setName">S/R Çizgileri</div><div class="setDesc">Destek ve direnç çizgileri</div></div><div class="tog on" id="tog_showSR"></div></div>
+      <div class="setRow" onclick="toggleSet('showLiq')"><div class="setIcon">💀</div><div class="setLbl"><div class="setName">Liq Çizgileri</div><div class="setDesc">Kaldıraç bazlı liq zonları</div></div><div class="tog on" id="tog_showLiq"></div></div>
+      <div class="setRow" onclick="toggleSet('showVolume')"><div class="setIcon">📊</div><div class="setLbl"><div class="setName">Hacim</div><div class="setDesc">Histogram hacim barları</div></div><div class="tog on" id="tog_showVolume"></div></div>
+      <div class="setRow" onclick="toggleSet('sweepDetect')"><div class="setIcon">⚡</div><div class="setLbl"><div class="setName">Sweep Dedektör</div><div class="setDesc">Liq zonu süpürme uyarısı</div></div><div class="tog on" id="tog_sweepDetect"></div></div>
+      <div class="setRow" onclick="toggleSet('whaleAlert')"><div class="setIcon">🐳</div><div class="setLbl"><div class="setName">Balina Alarmı</div><div class="setDesc">&gt;$500K tek işlem uyarısı</div></div><div class="tog on" id="tog_whaleAlert"></div></div>
+      <div class="setRow" onclick="toggleSet('sweepMarkers')"><div class="setIcon">📌</div><div class="setLbl"><div class="setName">Sweep İşaretleri</div><div class="setDesc">Grafikte sweep oku göster</div></div><div class="tog on" id="tog_sweepMarkers"></div></div>
+    </div>
+    <div class="setSection">
+      <div class="setHead">🔔 Alarmlar</div>
+      <div class="setRow" onclick="openAlarmModal()"><div class="setIcon">🔔</div><div class="setLbl"><div class="setName">Alarm Yönetici</div><div class="setDesc" id="alarmCountDesc">0 aktif alarm</div></div><span style="font-size:11px;color:var(--blue)">→</span></div>
+    </div>
+    <div class="setSection">
+      <div class="setHead">💾 Veri</div>
+      <div class="setRow" onclick="clearStorage()"><div class="setIcon">🗑️</div><div class="setLbl"><div class="setName">Ayarları Sıfırla</div><div class="setDesc">Tüm kayıtlı ayarları temizle</div></div><span style="font-size:10px;color:var(--red)">Sıfırla</span></div>
+    </div>
+    <div class="setSection">
+      <div class="setHead">ℹ️ Hakkında</div>
+      <div class="setRow" style="cursor:default"><div class="setIcon">🎯</div><div class="setLbl"><div class="setName">LiqMap Pro</div><div class="setDesc">Binance Futures Likidasyon Haritası</div></div><span style="font-size:10px;color:var(--t3)">v5.0</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV — 5 sekme -->
+<div id="bottomNav">
+  <div class="navItem active" id="nav_chart" onclick="gotoPage('chartPage','nav_chart')">
+    <div class="navLine"></div><div class="navIco">📊</div><div class="navLbl">Grafik</div>
+  </div>
+  <div class="navItem" id="nav_levels" onclick="gotoPage('levelsPage','nav_levels')">
+    <div class="navLine"></div><div class="navIco">📍</div><div class="navLbl">Seviyeler</div>
+  </div>
+  <div class="navItem" id="nav_liq" onclick="gotoPage('liqPage','nav_liq')">
+    <div class="navLine"></div><div class="navIco">💀</div><div class="navLbl">Liq</div>
+    <div class="navBadge" id="sweepNavBadge">0</div>
+  </div>
+  <div class="navItem" id="nav_signal" onclick="gotoPage('signalPage','nav_signal')">
+    <div class="navLine"></div><div class="navIco">📡</div><div class="navLbl">Sinyal</div>
+    <div class="navBadge" id="signalNavBadge">0</div>
+  </div>
+  <div class="navItem" id="nav_tools" onclick="gotoPage('toolsPage','nav_tools')">
+    <div class="navLine"></div><div class="navIco">🛠️</div><div class="navLbl">Araçlar</div>
+  </div>
+  <div class="navItem" id="nav_settings" onclick="gotoPage('settingsPage','nav_settings')">
+    <div class="navLine"></div><div class="navIco">⚙️</div><div class="navLbl">Ayarlar</div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div id="modal" onclick="if(event.target.id==='modal')closeModal()">
+  <div class="modalSheet">
+    <div class="modalHandle"></div>
+    <input class="searchInput" id="searchInput" placeholder="BTC, ETH, SOL..."
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+      onkeydown="if(event.key==='Enter')confirmSymbol()">
+    <div class="quickGrid">
+      <div class="quickBtn" onclick="setQuick('BTC')">BTC</div>
+      <div class="quickBtn" onclick="setQuick('ETH')">ETH</div>
+      <div class="quickBtn" onclick="setQuick('SOL')">SOL</div>
+      <div class="quickBtn" onclick="setQuick('BNB')">BNB</div>
+      <div class="quickBtn" onclick="setQuick('XRP')">XRP</div>
+      <div class="quickBtn" onclick="setQuick('DOGE')">DOGE</div>
+      <div class="quickBtn" onclick="setQuick('ADA')">ADA</div>
+      <div class="quickBtn" onclick="setQuick('AVAX')">AVAX</div>
+    </div>
+    <button class="goBtn" onclick="confirmSymbol()">⚡ Analiz Et</button>
+  </div>
+</div>
+
+<div id="alarmModal" onclick="if(event.target.id==='alarmModal')closeAlarmModal()">
+  <div class="modalSheet">
+    <div class="modalHandle"></div>
+    <div class="modalTitle">🔔 Alarm Yönetici</div>
+    <div id="alarmList"><div class="emptyState">Alarm yok</div></div>
+    <p style="font-size:10px;color:var(--t3);margin-top:12px;line-height:1.6">Alarm kurmak için: Liq zonu listesinde 🔔 butonuna basın veya Setup Builder'dan alarm kurun.</p>
+  </div>
+</div>
+
+<div id="loadingOverlay"><div class="spinner"></div><div class="loadTxt" id="loadTxt">Yükleniyor...</div></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════
+//  STORAGE
+// ══════════════════════════════════════════════════════
+const STORE_KEY = 'liqmap_v5';
+function saveState(){
+  try{
+    // BUG-7 FIX: Tetiklenmiş alarmları 24 saat sonra temizle
+    const cutoff = Date.now() - 86400000;
+    const cleanAlarms = S.alarms.filter(a => !a.triggered || (a.triggeredAt && a.triggeredAt > cutoff));
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      symbol:S.symbol, tf:S.tf, settings:S.settings,
+      setupHistory:S.setupHistory, alarms:cleanAlarms,
+    }));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(d.symbol) S.symbol = d.symbol;
+    if(d.tf) S.tf = d.tf;
+    if(d.settings) Object.assign(S.settings, d.settings);
+    if(d.setupHistory) S.setupHistory = d.setupHistory;
+    if(d.alarms) S.alarms = d.alarms;
+  }catch(e){}
+}
+function clearStorage(){ localStorage.removeItem(STORE_KEY); showToast('✅ Ayarlar sıfırlandı'); }
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+const S = {
+  symbol:'BTCUSDT', tf:'1h',
+  price:0, openP:0, high24:0, low24:0, vol24:0,
+  candles:[], srLevels:[], liqZones:[],
+  sweepLog:[], painHistory:[], signals:[],
+  setupHistory:[], alarms:[], signalFilter:'all', setupDir:'long',
+  mtfLevels:[], whaleLog:[],
+  lastCandleForSweep: null, // BUG-1 FIX için
+  settings:{
+    sensitivity:4, leverages:[10,20,50,100],
+    heatmap:true, heatDecay:true, heatOpacity:0.72,
+    showSR:true, showLiq:true, showVolume:true,
+    sweepDetect:true, whaleAlert:true, sweepMarkers:true,
+    scanLevFilter:[50,100],
+  }
+};
+
+const LEV_CFG = [
+  {x:5,color:'#a78bfa',pct:20.0},{x:10,color:'#60a5fa',pct:10.0},
+  {x:20,color:'#34d399',pct:5.0},{x:50,color:'#fbbf24',pct:2.0},
+  {x:100,color:'#f87171',pct:1.0},{x:125,color:'#fb923c',pct:0.8},
+];
+
+const SCANNER_COINS = [
+  'BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT',
+  'DOGEUSDT','ADAUSDT','AVAXUSDT','DOTUSDT','MATICUSDT',
+  'LINKUSDT','UNIUSDT','ATOMUSDT','LTCUSDT','FILUSDT',
+];
+
+const MTF_LIST = ['15m','1h','4h'];
+const TF_LABELS = {'1m':'1M','5m':'5M','15m':'15M','1h':'1H','4h':'4H','1d':'1D'};
+
+let chart=null, candleSeries=null, volumeSeries=null;
+let srLines=[], liqLines=[];
+let ws=null, wsAgg=null, wsSymbol='', wsTf='';
+let loadId=0, lastTickerUpd=0;
+let painUpdTimer=null, sweepAlertTimer=null, whaleAlertTimer=null, fabOpen=false;
+let sigGenTimer=null;
+
+// ══════════════════════════════════════════════════════
+//  CHART INIT
+// ══════════════════════════════════════════════════════
+function initChart(){
+  const container = document.getElementById('liveChart');
+  chart = LightweightCharts.createChart(container, {
+    width: container.clientWidth, height: container.clientHeight,
+    layout:{background:{color:'#0a0a0f'}, textColor:'#8888a0'},
+    grid:{vertLines:{color:'#13131a'}, horzLines:{color:'#13131a'}},
+    crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+    rightPriceScale:{borderColor:'#2a2a38'},
+    timeScale:{borderColor:'#2a2a38', timeVisible:true, secondsVisible:false},
+    handleScroll:true, handleScale:true,
+  });
+  candleSeries = chart.addCandlestickSeries({
+    upColor:'#22c55e', downColor:'#ef4444', borderVisible:false,
+    wickUpColor:'#22c55e', wickDownColor:'#ef4444',
+  });
+  volumeSeries = chart.addHistogramSeries({
+    priceFormat:{type:'volume'}, priceScaleId:'',
+    scaleMargins:{top:0.82, bottom:0},
+  });
+  const ro = new ResizeObserver(entries => {
+    const e = entries[0]; if(!e) return;
+    const {width, height} = e.contentRect;
+    if(width>0 && height>0){
+      chart.resize(width, height);
+      resizeCanvases(); scheduleHeatDraw();
+    }
+  });
+  ro.observe(container);
+  chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+    scheduleHeatDraw(); drawSweepMarkers();
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  LOAD DATA
+// ══════════════════════════════════════════════════════
+async function loadData(){
+  const myId = ++loadId;
+  showLoading('Veri çekiliyor...');
+  await closeWS();
+  if(myId !== loadId) return;
+
+  try{ candleSeries.setData([]); volumeSeries.setData([]); }catch(e){}
+  clearLines(srLines); clearLines(liqLines);
+  S.candles=[]; S.srLevels=[]; S.liqZones=[];
+  S.lastCandleForSweep = null;
+
+  try{
+    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${S.symbol}&interval=${S.tf}&limit=200`);
+    if(myId !== loadId) return;
+    if(!res.ok) throw new Error(`Sembol bulunamadı: ${S.symbol}`);
+    const raw = await res.json();
+    if(myId !== loadId) return;
+
+    S.candles = raw.map(d => ({
+      time:d[0]/1000, open:parseFloat(d[1]), high:parseFloat(d[2]),
+      low:parseFloat(d[3]), close:parseFloat(d[4]), volume:parseFloat(d[5]),
+    }));
+
+    candleSeries.setData(S.candles);
+    volumeSeries.setData(buildVolData(S.candles));
+    chart.timeScale().fitContent();
+    S.price = S.candles.at(-1).close;
+    S.openP = S.candles.at(-1).open;
+    S.lastCandleForSweep = {...S.candles.at(-1)};
+
+    await fetch24h(myId);
+    if(myId !== loadId) return;
+
+    S.srLevels = findSR(S.candles, S.settings.sensitivity);
+    renderLines();
+    resizeCanvases(); scheduleHeatDraw();
+
+    updateTopBar(); updateInfoStrip(); updateLevelsPage();
+    updateLiqPageFull(); generateSignals(); runBacktest();
+
+    document.getElementById('symbolBtnText').textContent = S.symbol;
+    document.querySelectorAll('.tfBtn').forEach(b => b.classList.toggle('active', b.dataset.tf === S.tf));
+
+    setLiveDot(true);
+    connectWS(myId);
+    connectAggWS(myId);
+    saveState();
+
+    // Multi-TF analizi (arka planda)
+    fetchMultiTF(myId);
+
+    showToast(`✅ ${S.symbol} · ${S.srLevels.length} S/R · ${liqLines.length} Liq`);
+  }catch(err){
+    if(myId !== loadId) return;
+    showToast('❌ ' + err.message);
+    setLiveDot(false);
+  }
+  hideLoading();
+}
+
+async function fetch24h(myId){
+  try{
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${S.symbol}`);
+    if(myId !== undefined && myId !== loadId) return;
+    if(!res.ok) return;
+    const d = await res.json();
+    S.price=parseFloat(d.lastPrice); S.openP=parseFloat(d.openPrice);
+    S.high24=parseFloat(d.highPrice); S.low24=parseFloat(d.lowPrice);
+    S.vol24=parseFloat(d.quoteVolume);
+  }catch(e){}
+}
+
+function buildVolData(c){
+  return c.map(x => ({
+    time:x.time, value:x.volume,
+    color:x.close>=x.open?'rgba(34,197,94,.4)':'rgba(239,68,68,.4)',
+  }));
+}
+
+// ══════════════════════════════════════════════════════
+//  MULTI-TF CONFLUENCE
+// ══════════════════════════════════════════════════════
+async function fetchMultiTF(myId){
+  const allLevels = [];
+  try{
+    for(const tf of MTF_LIST){
+      if(myId !== loadId) return;
+      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${S.symbol}&interval=${tf}&limit=100`);
+      if(!res.ok) continue;
+      const raw = await res.json();
+      const candles = raw.map(d => ({
+        time:d[0]/1000, open:+d[1], high:+d[2], low:+d[3], close:+d[4], volume:+d[5],
+      }));
+      const price = candles.at(-1).close;
+      const levels = findSRUnified(candles, price, 4);
+      levels.forEach(lv => allLevels.push({...lv, tf}));
+      await sleep(300);
+    }
+    if(myId !== loadId) return;
+
+    // Çakışan seviyeleri bul (farklı TF'lerde aynı bölge)
+    const confluenceLevels = findMTFConfluence(allLevels);
+    S.mtfLevels = confluenceLevels;
+    renderMTFLevels();
+
+    const confCount = confluenceLevels.filter(l => l.tfs.length >= 2).length;
+    const badge = document.getElementById('mtfBadge');
+    const txt = document.getElementById('mtfBadgeTxt');
+    badge.style.display = confCount > 0 ? 'flex' : 'none';
+    txt.textContent = `${confCount} MTF`;
+  }catch(e){}
+}
+
+function findMTFConfluence(allLevels){
+  if(!allLevels.length) return [];
+  const ref = S.price || 1;
+  const thr = ref * 0.008;
+  allLevels.sort((a,b) => a.price - b.price);
+  const out = [];
+  let i = 0;
+  while(i < allLevels.length){
+    const grp = [allLevels[i]]; let j = i+1;
+    while(j < allLevels.length && allLevels[j].price - allLevels[i].price < thr) grp.push(allLevels[j++]);
+    const avg = grp.reduce((s,l) => s+l.price, 0) / grp.length;
+    const tfs = [...new Set(grp.map(l => l.tf))];
+    const supC = grp.filter(l => l.type==='support').length;
+    out.push({
+      price:avg, tfs,
+      type:supC >= grp.length/2 ? 'support' : 'resistance',
+      strength:Math.min(grp.reduce((s,l) => s+l.strength, 0) / grp.length + tfs.length * 1.5, 10),
+      count:grp.length,
+    });
+    i = j;
+  }
+  return out.sort((a,b) => b.tfs.length - a.tfs.length || b.strength - a.strength);
+}
+
+function renderMTFLevels(){
+  const card = document.getElementById('mtfCard');
+  const list = document.getElementById('mtfList');
+  const count = document.getElementById('mtfCount');
+  const conf = S.mtfLevels.filter(l => l.tfs.length >= 2);
+  count.textContent = conf.length;
+  if(!conf.length){ card.style.display='none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = conf.slice(0,8).map(lv => {
+    const isS = lv.type==='support';
+    const color = isS ? '#22c55e' : '#ef4444';
+    const dist = (lv.price - S.price) / S.price * 100;
+    const dStr = (dist>=0?'+':'') + dist.toFixed(2) + '%';
+    const tfBadges = lv.tfs.map(tf => `<span class="tfTag" style="color:var(--blue);border-color:var(--blue)">${TF_LABELS[tf]||tf}</span>`).join('');
+    return `<div class="lvRow">
+      <div class="lvDot" style="background:${color};box-shadow:0 0 5px ${color}66"></div>
+      <div class="lvInfo">
+        <div class="lvPrice">${fmtP(lv.price)}</div>
+        <div class="tfBadges">${tfBadges}</div>
+      </div>
+      <div class="lvRight">
+        <div class="lvDist ${dist>=0?'dn':'up'}">${dStr}</div>
+        <div class="strBar"><div class="strFill" style="width:${(lv.strength/10*100).toFixed(0)}%;background:${color}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  WEBSOCKET — Kline
+// ══════════════════════════════════════════════════════
+function closeWS(){
+  return new Promise(resolve => {
+    const toClose = [ws, wsAgg].filter(Boolean);
+    if(!toClose.length){ ws=null; wsAgg=null; resolve(); return; }
+    let closed = 0;
+    toClose.forEach(w => {
+      if(w.readyState === WebSocket.CLOSED){ closed++; if(closed===toClose.length){ ws=null; wsAgg=null; resolve(); } return; }
+      w.onclose = () => { closed++; if(closed===toClose.length){ ws=null; wsAgg=null; resolve(); } };
+      w.onerror = () => {};
+      w.close();
+    });
+    setTimeout(() => { ws=null; wsAgg=null; resolve(); }, 2000);
+  });
+}
+
+function connectWS(myId){
+  if(ws && wsSymbol===S.symbol && wsTf===S.tf) return;
+  wsSymbol=S.symbol; wsTf=S.tf;
+  const newWs = new WebSocket(`wss://stream.binance.com:9443/ws/${S.symbol.toLowerCase()}@kline_${S.tf}`);
+
+  newWs.onopen = () => { if(myId!==loadId){newWs.close();return;} ws=newWs; setLiveDot(true); };
+  newWs.onerror = () => setLiveDot(false);
+  newWs.onclose = () => {
+    if(ws===newWs) ws=null;
+    setLiveDot(false);
+    if(myId===loadId && wsSymbol===S.symbol) setTimeout(() => { if(myId===loadId) connectWS(myId); }, 3000);
+  };
+
+  newWs.onmessage = event => {
+    if(myId !== loadId) return;
+    if(ws !== newWs && newWs.readyState !== WebSocket.CONNECTING) return;
+
+    let data; try{ data=JSON.parse(event.data); }catch(e){ return; }
+    const k = data.k; if(!k) return;
+    if(k.s && k.s !== S.symbol) return;
+
+    // BUG-1 FIX: WS'den tam candle (high/low/close) al
+    const candle = {
+      time:k.t/1000, open:parseFloat(k.o), high:parseFloat(k.h),
+      low:parseFloat(k.l), close:parseFloat(k.c), volume:parseFloat(k.v),
+    };
+
+    const last = S.candles.at(-1);
+    if(!last) return;
+
+    if(last.time === candle.time){
+      S.candles[S.candles.length-1] = candle;
+      try{
+        candleSeries.update(candle);
+        volumeSeries.update({time:candle.time, value:candle.volume, color:candle.close>=candle.open?'rgba(34,197,94,.4)':'rgba(239,68,68,.4)'});
+      }catch(e){}
+    } else if(candle.time > last.time){
+      S.candles.push(candle);
+      if(S.candles.length > 500) S.candles.shift();
+      try{
+        candleSeries.update(candle);
+        volumeSeries.update({time:candle.time, value:candle.volume, color:candle.close>=candle.open?'rgba(34,197,94,.4)':'rgba(239,68,68,.4)'});
+      }catch(e){}
+    }
+
+    const prevCandle = S.lastCandleForSweep;
+    S.price = candle.close; S.openP = candle.open;
+    S.lastCandleForSweep = {...candle};
+
+    // Zone mesafelerini güncelle
+    S.liqZones.forEach(z => z.dist = Math.abs(z.price-S.price)/S.price*100);
+    S.liqZones.sort((a,b) => a.dist-b.dist);
+
+    // BUG-1 FIX: sweep tespiti tam candle ile
+    if(S.settings.sweepDetect && prevCandle) checkSweep(candle, prevCandle);
+    checkAlarms();
+
+    clearTimeout(painUpdTimer);
+    painUpdTimer = setTimeout(() => {
+      updatePainDynamic();
+      updateProximityMeter();
+      updateInfoStrip();
+      scheduleHeatDraw();
+      drawSweepMarkers();
+    }, 600);
+
+    // Sinyal güncellemesi daha seyrek (5s)
+    clearTimeout(sigGenTimer);
+    sigGenTimer = setTimeout(generateSignals, 5000);
+
+    updateTopBar();
+
+    const now = Date.now();
+    if(now - lastTickerUpd > 30000){
+      lastTickerUpd = now;
+      fetch24h(myId).then(updateInfoStrip);
+    }
+  };
+}
+
+// ══════════════════════════════════════════════════════
+//  WEBSOCKET — aggTrade (Balina tespiti)
+// ══════════════════════════════════════════════════════
+function connectAggWS(myId){
+  if(!S.settings.whaleAlert) return;
+  const url = `wss://stream.binance.com:9443/ws/${S.symbol.toLowerCase()}@aggTrade`;
+  const newWs = new WebSocket(url);
+
+  newWs.onopen = () => { if(myId!==loadId){newWs.close();return;} wsAgg=newWs; };
+  newWs.onerror = () => {};
+  newWs.onclose = () => {
+    if(wsAgg===newWs) wsAgg=null;
+    if(myId===loadId && wsSymbol===S.symbol)
+      setTimeout(() => { if(myId===loadId && S.settings.whaleAlert) connectAggWS(myId); }, 5000);
+  };
+
+  newWs.onmessage = event => {
+    if(myId !== loadId) return;
+    if(!S.settings.whaleAlert) return;
+    let data; try{ data=JSON.parse(event.data); }catch(e){ return; }
+    const usd = parseFloat(data.p) * parseFloat(data.q);
+    if(usd < 500000) return;
+
+    const side = data.m ? 'SELL' : 'BUY';
+    const ev = {
+      time: new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      side, usd, price: parseFloat(data.p), ts: Date.now(),
+    };
+    S.whaleLog.unshift(ev);
+    if(S.whaleLog.length > 20) S.whaleLog.pop();
+
+    showWhaleAlert(ev);
+    document.getElementById('iWhale').textContent = `${side==='BUY'?'🟢':'🔴'} $${fmtVol(usd)}`;
+  };
+}
+
+function showWhaleAlert(ev){
+  const el = document.getElementById('whaleAlert');
+  const txt = document.getElementById('whaleAlertTxt');
+  txt.textContent = `🐳 ${ev.side==='BUY'?'BÜYÜK ALIM':'BÜYÜK SATIŞ'}: $${fmtVol(ev.usd)} @ ${fmtP(ev.price)}`;
+  el.style.display = 'block';
+  clearTimeout(whaleAlertTimer);
+  whaleAlertTimer = setTimeout(() => el.style.display='none', 5000);
+  if(ev.usd > 1000000) flashScreen(ev.side==='BUY'?'#22c55e':'#ef4444');
+}
+
+// ══════════════════════════════════════════════════════
+//  BUG-1 FIX: SWEEP DEDEKTÖRÜ — high/low kullan
+// ══════════════════════════════════════════════════════
+function checkSweep(candle, prevCandle){
+  if(!S.liqZones.length) return;
+
+  S.liqZones.forEach(zone => {
+    const isLongZone = zone.srType === 'support';
+
+    // Gerçek sweep:
+    // Long liq sweep: mumun LOW'u zonu deldi AMA kapanış zonu üstünde
+    const longSweep = isLongZone &&
+                      candle.low <= zone.price &&
+                      candle.close > zone.price;
+
+    // Short liq sweep: mumun HIGH'ı zonu deldi AMA kapanış zonu altında
+    const shortSweep = !isLongZone &&
+                       candle.high >= zone.price &&
+                       candle.close < zone.price;
+
+    if(!longSweep && !shortSweep) return;
+
+    // Çok uzak zone'ları atla (gürültü engeli)
+    const distFromClose = Math.abs(candle.close - zone.price) / zone.price * 100;
+    if(distFromClose > 2.0) return;
+
+    // Aynı zone için son 5 dakikada tekrar sweep kaydı var mı?
+    const recentDup = S.sweepLog.find(s =>
+      Math.abs(s.price - zone.price) / zone.price < 0.002 &&
+      Date.now() - s.ts < 300000
+    );
+    if(recentDup) return;
+
+    const side = isLongZone ? 'Long' : 'Short';
+    const dir  = isLongZone ? '⬇️' : '⬆️';
+    const ev = {
+      id: `${zone.price}_${zone.lev.x}_${Date.now()}`,
+      time: new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      price: zone.price, lev: zone.lev, side, dir,
+      txt: `${dir} ${zone.lev.x}x ${side} Liq Sweep`,
+      color: zone.lev.color, ts: Date.now(),
+      candleHigh: candle.high, candleLow: candle.low, candleClose: candle.close,
+    };
+
+    S.sweepLog.unshift(ev);
+    if(S.sweepLog.length > 30) S.sweepLog.pop();
+
+    showSweepAlert(ev);
+    updateSweepFeed();
+    drawSweepMarkers();
+    fireAlarm('⚡ ' + ev.txt + ' @ ' + fmtP(zone.price), 'var(--red)');
+
+    // Sweep sonrası sinyal üret (öncelikli)
+    setTimeout(generateSignals, 100);
+  });
+}
+
+function showSweepAlert(ev){
+  const el = document.getElementById('sweepAlertBox');
+  const txt = document.getElementById('sweepAlertTxt');
+  txt.textContent = `⚡ ${ev.dir} ${ev.lev.x}x ${ev.side} SWEEP!`;
+  txt.style.color = ev.lev.color;
+  el.style.display = 'block';
+  clearTimeout(sweepAlertTimer);
+  sweepAlertTimer = setTimeout(() => el.style.display='none', 5000);
+
+  const badge = document.getElementById('sweepNavBadge');
+  badge.textContent = S.sweepLog.length;
+  badge.classList.add('show');
+  flashScreen(ev.side==='Long' ? '#22c55e' : '#ef4444');
+  if(navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
+}
+
+// ══════════════════════════════════════════════════════
+//  SWEEP CANVAS — Grafikte işaret okları (BUG-3 FIX)
+// ══════════════════════════════════════════════════════
+const sweepCanvas = document.getElementById('sweepCanvas');
+const sctx = sweepCanvas.getContext('2d');
+
+function drawSweepMarkers(){
+  const W = sweepCanvas.width, H = sweepCanvas.height;
+  sctx.clearRect(0, 0, W, H);
+  if(!S.settings.sweepMarkers || !S.sweepLog.length || W<=1) return;
+
+  function priceToY(p){
+    try{
+      const y = chart.priceScale('right').priceToCoordinate(p);
+      return (typeof y === 'number' && isFinite(y)) ? y : null;
+    }catch(e){ return null; }
+  }
+
+  const now = Date.now();
+  S.sweepLog.forEach(sweep => {
+    const y = priceToY(sweep.price);
+    if(y === null || y < 0 || y > H) return;
+
+    // Zamanla solar (30 dk sonra %20 opaklık)
+    const age = (now - sweep.ts) / 1800000; // 0=yeni, 1=30dk
+    const alpha = Math.max(0.2, 1 - age * 0.8);
+
+    const isLong = sweep.side === 'Long';
+    const [r,g,b] = hexToRgb(sweep.lev.color);
+
+    // Sol kenarda dikey bar
+    sctx.fillStyle = `rgba(${r},${g},${b},${(alpha*0.7).toFixed(2)})`;
+    sctx.fillRect(0, y-1, 4, 2);
+
+    // Ok işareti
+    sctx.save();
+    sctx.globalAlpha = alpha;
+    sctx.fillStyle = sweep.lev.color;
+    sctx.font = 'bold 13px sans-serif';
+    sctx.textAlign = 'center';
+    sctx.textBaseline = 'middle';
+
+    // Ok yönü: Long sweep = aşağı süpürüp geri döndü = yukarı ok
+    // Short sweep = yukarı süpürüp geri döndü = aşağı ok
+    sctx.fillText(isLong ? '▲' : '▼', 18, y);
+
+    // Etiket
+    sctx.font = '9px Inter,sans-serif';
+    sctx.textAlign = 'left';
+    sctx.fillText(`${sweep.lev.x}x`, 28, y);
+    sctx.restore();
+
+    // Yatay ince çizgi
+    sctx.beginPath();
+    sctx.strokeStyle = `rgba(${r},${g},${b},${(alpha*0.25).toFixed(2)})`;
+    sctx.lineWidth = 1;
+    sctx.setLineDash([3,4]);
+    sctx.moveTo(40, y);
+    sctx.lineTo(W, y);
+    sctx.stroke();
+    sctx.setLineDash([]);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  ALARM SİSTEMİ
+// ══════════════════════════════════════════════════════
+function checkAlarms(){
+  S.alarms.forEach(alarm => {
+    if(alarm.triggered) return;
+    let hit = false;
+    if(alarm.type === 'price'){
+      hit = (alarm.dir==='above' && S.price>=alarm.value) ||
+            (alarm.dir==='below' && S.price<=alarm.value);
+    } else if(alarm.type === 'liq'){
+      const zone = S.liqZones.find(z => Math.abs(z.price-alarm.value)/alarm.value < 0.005);
+      if(zone && zone.dist <= alarm.threshold) hit = true;
+    }
+    if(!hit) return;
+    alarm.triggered = true;
+    alarm.triggeredAt = Date.now(); // BUG-7 FIX
+    fireAlarm(alarm.label, 'var(--yellow)');
+    updateAlarmUI(); saveState();
+  });
+}
+
+function fireAlarm(msg, color){
+  showToast('🔔 ' + msg, 5000);
+  flashScreen(color.includes('green')?'#22c55e':'#f59e0b');
+  if(navigator.vibrate) navigator.vibrate([200,100,200]);
+  document.getElementById('alarmCountDesc').textContent = S.alarms.filter(a=>!a.triggered).length + ' aktif alarm';
+}
+
+function addAlarm(type, value, label, threshold=1.0, dir='below'){
+  S.alarms.push({id:Date.now(), type, value, label, threshold, dir, triggered:false});
+  saveState(); updateAlarmUI();
+  showToast('🔔 Alarm kuruldu: ' + label);
+}
+
+function updateAlarmUI(){
+  const active = S.alarms.filter(a=>!a.triggered);
+  document.getElementById('alarmCountDesc').textContent = active.length + ' aktif alarm';
+  const list = document.getElementById('alarmList');
+  if(!S.alarms.length){ list.innerHTML='<div class="emptyState">Alarm yok</div>'; return; }
+  list.innerHTML = S.alarms.map((a,i) => `
+    <div class="alarmItem">
+      <div class="alarmDot" style="background:${a.triggered?'var(--t3)':'var(--yellow)'}"></div>
+      <div class="alarmInfo">
+        <div class="alarmLabel">${a.label}</div>
+        <div class="alarmSub">${a.triggered?'✅ Tetiklendi':'⏳ Bekliyor'} · ${fmtP(a.value)}</div>
+      </div>
+      <div class="alarmDel" onclick="delAlarm(${i})">🗑️</div>
+    </div>`).join('');
+}
+
+function delAlarm(i){ S.alarms.splice(i,1); saveState(); updateAlarmUI(); }
+function openAlarmModal(){ updateAlarmUI(); document.getElementById('alarmModal').classList.add('open'); }
+function closeAlarmModal(){ document.getElementById('alarmModal').classList.remove('open'); }
+
+// ══════════════════════════════════════════════════════
+//  PAIN INDEX — Normalize edilmiş (BUG sorun-2 FIX)
+// ══════════════════════════════════════════════════════
+function updatePainDynamic(){
+  if(!S.srLevels.length || !S.price) return;
+  const {ls, ss, longZones, shortZones} = calcPainDetailed();
+  const total = ls+ss||1, lPct = ls/total*100, sPct = 100-lPct;
+
+  document.getElementById('painBarL').style.width = lPct + '%';
+  document.getElementById('painLong').textContent = ls.toFixed(0);
+  document.getElementById('painShort').textContent = ss.toFixed(0);
+  document.getElementById('painScore').textContent = `${lPct.toFixed(0)}/${sPct.toFixed(0)}`;
+  document.getElementById('painLongSub').textContent = longZones[0] ? `Yakın: ${longZones[0].dist.toFixed(2)}%` : '—';
+  document.getElementById('painShortSub').textContent = shortZones[0] ? `Yakın: ${shortZones[0].dist.toFixed(2)}%` : '—';
+
+  const isLong = ls > ss, diff = Math.abs(lPct-sPct);
+  const str = diff>30?'🔥 Çok Güçlü':diff>15?'💪 Güçlü':diff>5?'📊 Orta':'⚖️ Dengeli';
+  const pill = document.getElementById('dominantPill');
+  pill.textContent = isLong ? `${str} — Aşağı Baskı` : `${str} — Yukarı Baskı`;
+  pill.style.color = isLong ? 'var(--red)' : 'var(--green)';
+  pill.style.borderColor = isLong ? 'var(--red)' : 'var(--green)';
+
+  const card = document.getElementById('painCard');
+  card.style.setProperty('--px', isLong?'25%':'75%');
+  card.style.setProperty('--pc', isLong?'#ef4444':'#22c55e');
+
+  document.getElementById('painCellLong').classList.toggle('hot', isLong);
+  document.getElementById('painCellShort').classList.toggle('hot', !isLong);
+
+  const nearest = S.liqZones[0];
+  if(nearest){
+    const dir = nearest.price < S.price ? '⬇️' : '⬆️';
+    document.getElementById('painNote').textContent =
+      `${dir} Kritik: ${nearest.lev.x}x ${nearest.srType==='support'?'Long':'Short'} Liq @ ${fmtP(nearest.price)} (${nearest.dist.toFixed(2)}%)`;
+  }
+
+  document.getElementById('painBadge').style.display = 'flex';
+  document.getElementById('painBadgeTxt').textContent = isLong ? `📉${lPct.toFixed(0)}%` : `📈${sPct.toFixed(0)}%`;
+  document.getElementById('iPain').textContent = isLong ? '📉 Aşağı' : '📈 Yukarı';
+
+  const nz = S.liqZones[0];
+  document.getElementById('iNearLiq').textContent = nz ? nz.dist.toFixed(2)+'%' : '—';
+
+  // Pain history
+  S.painHistory.push({t:Date.now(), ls, ss, price:S.price});
+  if(S.painHistory.length > 120) S.painHistory.shift();
+
+  // Pain trend (son 10 nokta)
+  calcPainTrend();
+  drawPainMiniChart();
+  updateLiqStats(ls, ss);
+  detectCascadeZones();
+}
+
+function calcPainTrend(){
+  if(S.painHistory.length < 5) return;
+  const recent = S.painHistory.slice(-10);
+  const painTrendVal = recent.at(-1).ls - recent[0].ls;
+  const isBearTrend = painTrendVal > 0; // long baskı artıyor = aşağı baskı
+  const trendStr = Math.abs(painTrendVal) < 1 ? '→ Yatay' :
+                   isBearTrend ? '↗ Long baskı artıyor' : '↘ Short baskı artıyor';
+  const trendColor = Math.abs(painTrendVal) < 1 ? 'var(--t2)' :
+                     isBearTrend ? 'var(--red)' : 'var(--green)';
+  const trendEl = document.getElementById('painTrendLabel');
+  trendEl.textContent = trendStr;
+  trendEl.style.color = trendColor;
+  document.getElementById('iPainTrend').textContent = isBearTrend ? '📉' : Math.abs(painTrendVal)<1 ? '→' : '📈';
+  document.getElementById('iPainTrend').style.color = trendColor;
+}
+
+function calcPainDetailed(){
+  let ls=0, ss=0;
+  const active = LEV_CFG.filter(l => S.settings.leverages.includes(l.x));
+  const longZones=[], shortZones=[];
+  // NORMALIZE FIX: seviye sayısından bağımsız
+  const longCount = Math.max(1, S.srLevels.filter(l=>l.type==='support').length);
+  const shortCount = Math.max(1, S.srLevels.filter(l=>l.type==='resistance').length);
+
+  S.srLevels.forEach(lv => {
+    const dist = Math.abs(lv.price-S.price)/S.price*100;
+    const w = lv.strength * (1/(dist+0.5));
+    active.forEach(lev => {
+      if(lv.type==='support'){
+        ls += w*lev.x;
+        const lp = lv.price*(1-lev.pct/100);
+        longZones.push({...lv, lev, price:lp, dist:Math.abs(lp-S.price)/S.price*100});
+      }
+      if(lv.type==='resistance'){
+        ss += w*lev.x;
+        const lp = lv.price*(1+lev.pct/100);
+        shortZones.push({...lv, lev, price:lp, dist:Math.abs(lp-S.price)/S.price*100});
+      }
+    });
+  });
+
+  // Normalize
+  ls = ls / longCount;
+  ss = ss / shortCount;
+
+  longZones.sort((a,b) => a.dist-b.dist);
+  shortZones.sort((a,b) => a.dist-b.dist);
+  return {ls, ss, longZones, shortZones};
+}
+
+function drawPainMiniChart(){
+  const canvas = document.getElementById('painMiniChart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.offsetWidth, H = 48;
+  canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+  if(S.painHistory.length < 2) return;
+  const pts = S.painHistory.slice(-60);
+  const maxVal = Math.max(...pts.map(p => Math.max(p.ls, p.ss)), 1);
+  const drawLine = (key, color) => {
+    ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.lineJoin='round';
+    pts.forEach((p,i) => {
+      const x=i/(pts.length-1)*W, y=H-(p[key]/maxVal)*(H-6)-3;
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  };
+  drawLine('ls','rgba(239,68,68,.8)');
+  drawLine('ss','rgba(34,197,94,.8)');
+}
+
+function updateLiqStats(ls, ss){
+  const card = document.getElementById('liqStatsCard'); card.style.display='block';
+  const total=S.liqZones.length, below=S.liqZones.filter(z=>z.price<S.price).length;
+  const avg=total?(S.liqZones.reduce((a,z)=>a+z.dist,0)/total).toFixed(2):'—';
+  const min=S.liqZones[0]?S.liqZones[0].dist.toFixed(2):'—';
+  document.getElementById('liqStats').innerHTML=`
+    <div class="statCell"><div class="statCellLbl">Toplam Zon</div><div class="statCellVal" style="color:var(--purple)">${total}</div></div>
+    <div class="statCell"><div class="statCellLbl">Min Uzaklık</div><div class="statCellVal" style="color:var(--yellow)">${min}%</div></div>
+    <div class="statCell"><div class="statCellLbl">⬇️ Altında</div><div class="statCellVal" style="color:var(--red)">${below}</div></div>
+    <div class="statCell"><div class="statCellLbl">⬆️ Üstünde</div><div class="statCellVal" style="color:var(--green)">${total-below}</div></div>
+    <div class="statCell"><div class="statCellLbl">Ort Uzaklık</div><div class="statCellVal" style="color:var(--blue)">${avg}%</div></div>
+    <div class="statCell"><div class="statCellLbl">Pain N/L</div><div class="statCellVal" style="color:var(--orange)">${ls.toFixed(0)}/${ss.toFixed(0)}</div></div>`;
+}
+
+// Cascade: kaldıraç kümesi başına arama (BUG sorun-4 FIX)
+function detectCascadeZones(){
+  const active = LEV_CFG.filter(l => S.settings.leverages.includes(l.x));
+  const cascades = [];
+  active.forEach(lev => {
+    const zones = S.liqZones.filter(z => z.lev.x === lev.x);
+    const BW = S.price * 0.005; // %0.5 bant
+    const groups = [];
+    zones.forEach(z => {
+      const g = groups.find(g => Math.abs(g.center-z.price) < BW);
+      if(g) g.zones.push(z);
+      else groups.push({center:z.price, zones:[z]});
+    });
+    groups.filter(g => g.zones.length >= 2).forEach(g => {
+      cascades.push({center:g.center, zones:g.zones, lev});
+    });
+  });
+
+  const card = document.getElementById('cascadeCard');
+  const list = document.getElementById('cascadeList');
+  document.getElementById('cascadeCount').textContent = cascades.length;
+  if(!cascades.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  list.innerHTML = cascades.map(g => {
+    const dist = Math.abs(g.center-S.price)/S.price*100;
+    const dir = g.center<S.price ? '⬇️' : '⬆️';
+    return `<div class="cascadeZone" style="border-color:${g.lev.color}44">
+      💣 <b style="color:${g.lev.color}">${dir} ${g.lev.x}x CASCADE</b>
+      @ ${fmtP(g.center)} — ${g.zones.length} zon · ${dist.toFixed(2)}% uzakta
+    </div>`;
+  }).join('');
+}
+
+function updateProximityMeter(){
+  if(!S.liqZones.length) return;
+  const meter = document.getElementById('proxMeter'); meter.style.display='block';
+  const active = LEV_CFG.filter(l => S.settings.leverages.includes(l.x));
+  const data = active.map(lev => {
+    const zones = S.liqZones.filter(z => z.lev.x===lev.x);
+    const n = zones.sort((a,b)=>a.dist-b.dist)[0];
+    return {lev, dist:n?n.dist:999, price:n?n.price:null};
+  }).sort((a,b)=>a.dist-b.dist);
+  const maxD = Math.max(...data.map(p=>p.dist), 10);
+  document.getElementById('proxRows').innerHTML = data.map(p => {
+    const pct = Math.max(2, 100-(p.dist/maxD*100));
+    const near = p.dist<1.5 ? ` <span style="color:var(--red);font-size:9px">⚡YAKLAŞIYOR</span>` : '';
+    return `<div class="proxRow">
+      <span class="proxLbl" style="color:${p.lev.color}">${p.lev.x}x Liq</span>
+      <div class="proxBarWrap"><div class="proxBarFill" style="width:${pct}%;background:${p.lev.color}"></div></div>
+      <span class="proxVal" style="color:${p.lev.color}">${p.dist<999?p.dist.toFixed(1)+'%':'—'}${near}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateSweepFeed(){
+  const el = document.getElementById('sweepFeed');
+  document.getElementById('sweepCount').textContent = S.sweepLog.length;
+  if(!S.sweepLog.length){ el.innerHTML='<div class="emptyState">Henüz sweep yok</div>'; return; }
+  el.innerHTML = S.sweepLog.map(s => `
+    <div class="sweepItem" style="border-color:${s.lev.color}">
+      <span class="sweepTime">${s.time}</span>
+      <span class="sweepTxt" style="color:${s.lev.color}">${s.txt}</span>
+      <span class="sweepPrc">${fmtP(s.price)}</span>
+    </div>`).join('');
+}
+
+function updateLiqList(){
+  const el = document.getElementById('liqList');
+  document.getElementById('liqZoneCount').textContent = S.liqZones.length;
+  const zones = S.liqZones.slice(0,16);
+  if(!zones.length){ el.innerHTML='<div class="emptyState">Kaldıraç seçin</div>'; return; }
+  el.innerHTML = zones.map(z => {
+    const dir = z.price<S.price?'⬇️':'⬆️';
+    const side = z.srType==='support'?'Long Liq':'Short Liq';
+    const rPct = Math.max(2, 100-z.dist*8).toFixed(0);
+    return `<div class="liqRow${z.dist<1.5?' near':''}">
+      <div class="liqBar" style="background:${z.lev.color}"></div>
+      <div class="liqInfo">
+        <div class="liqPrice" style="color:${z.lev.color}">${fmtP(z.price)}</div>
+        <div class="liqMeta">${z.lev.x}x · ${side} · SR:${fmtP(z.srPrice)}</div>
+      </div>
+      <div class="liqRight">
+        <div class="liqDistVal" style="color:${z.lev.color}">${dir} ${z.dist.toFixed(2)}%</div>
+        <div class="riskBar"><div class="riskFill" style="width:${rPct}%;background:${z.lev.color}"></div></div>
+        <div style="font-size:9px;color:var(--t3);cursor:pointer;margin-top:2px" onclick="addAlarm('liq',${z.price},'${z.lev.x}x ${side} @ ${fmtP(z.price)}',0.5)">🔔</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateLiqPageFull(){
+  updatePainDynamic(); updateProximityMeter(); updateLiqList(); updateSweepFeed();
+}
+
+// ══════════════════════════════════════════════════════
+//  BACKTEST (BUG sorun geliştirme-8)
+// ══════════════════════════════════════════════════════
+function runBacktest(){
+  const card = document.getElementById('backtestCard');
+  if(!S.sweepLog.length || S.candles.length < 10){ card.style.display='none'; return; }
+  const results = [];
+  S.sweepLog.forEach(sweep => {
+    const idx = S.candles.findIndex(c => Math.abs(c.time - sweep.ts/1000) < 120);
+    if(idx < 0 || idx >= S.candles.length-3) return;
+    const future = S.candles.slice(idx+1, idx+11);
+    if(!future.length) return;
+    const isLong = sweep.side === 'Long';
+    const maxMove = isLong
+      ? Math.max(...future.map(c=>c.high)) - sweep.price
+      : sweep.price - Math.min(...future.map(c=>c.low));
+    const movePct = maxMove / sweep.price * 100;
+    const success = maxMove > 0 && movePct > 0.2;
+    results.push({sweep, movePct, success});
+  });
+
+  card.style.display = 'block';
+  const el = document.getElementById('backtestResults');
+  if(!results.length){ el.innerHTML='<div class="emptyState">Yeterli geçmiş yok</div>'; return; }
+
+  const successCount = results.filter(r=>r.success).length;
+  const avgMove = results.reduce((a,r)=>a+r.movePct, 0) / results.length;
+  const successRate = (successCount/results.length*100).toFixed(0);
+  const rateColor = successRate>=65?'var(--green)':successRate>=50?'var(--yellow)':'var(--red)';
+
+  el.innerHTML = `
+    <div class="statGrid" style="margin-bottom:8px">
+      <div class="statCell"><div class="statCellLbl">Toplam Sweep</div><div class="statCellVal" style="color:var(--purple)">${results.length}</div></div>
+      <div class="statCell"><div class="statCellLbl">Başarı Oranı</div><div class="statCellVal" style="color:${rateColor}">${successRate}%</div></div>
+      <div class="statCell"><div class="statCellLbl">Ort. Hareket</div><div class="statCellVal" style="color:var(--blue)">+${avgMove.toFixed(2)}%</div></div>
+      <div class="statCell"><div class="statCellLbl">Max Hareket</div><div class="statCellVal" style="color:var(--green)">+${Math.max(...results.map(r=>r.movePct)).toFixed(2)}%</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--t3);text-align:center">Son 200 mum · Sweep sonrası 10 mum analizi</div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  SİNYAL — BUG-2 (ID tabanlı), BUG-4 (ts korunuyor)
+// ══════════════════════════════════════════════════════
+function generateSignals(){
+  if(!S.srLevels.length || !S.price) return;
+  const {ls, ss} = calcPainDetailed();
+  const isLongPain = ls > ss;
+  const newSigs = [];
+
+  S.liqZones.forEach(zone => {
+    const isSweep = S.sweepLog.some(s =>
+      Math.abs(s.price-zone.price)/zone.price < 0.003 && Date.now()-s.ts < 600000
+    );
+    const backingSR = S.srLevels.find(lv => Math.abs(lv.price-zone.price)/zone.price < 0.015);
+    const isLong = zone.srType === 'support';
+    const painConfirm = isLong ? isLongPain : !isLongPain;
+
+    let score = (isSweep?40:0) + (backingSR?30:0) + (painConfirm?20:0) + (zone.lev.x>=50?10:5);
+
+    // MTF confluence bonus
+    const mtfMatch = S.mtfLevels.find(lv => Math.abs(lv.price-zone.srPrice)/zone.srPrice < 0.01);
+    if(mtfMatch && mtfMatch.tfs.length >= 2) score += mtfMatch.tfs.length * 5;
+
+    if(zone.dist > 5) score *= 0.5;
+    if(score < 40) return;
+
+    const entry = zone.price * (isLong?1.0015:0.9985);
+    const stop  = isLong ? zone.price*0.997 : zone.price*1.003;
+    const target = isLong
+      ? (S.srLevels.filter(lv=>lv.price>entry).sort((a,b)=>a.price-b.price)[0]?.price || entry*1.02)
+      : (S.srLevels.filter(lv=>lv.price<entry).sort((a,b)=>b.price-a.price)[0]?.price || entry*0.98);
+    const rr = Math.abs(target-entry)/Math.abs(entry-stop);
+    if(rr < 1.5) return;
+
+    // BUG-4 FIX: Signal ID ile mevcut timestamp'ı koru
+    const sigId = `${zone.srPrice.toFixed(2)}_${zone.lev.x}_${isLong?'L':'S'}`;
+    const existing = S.signals.find(s => s.id === sigId);
+
+    newSigs.push({
+      id: sigId, dir:isLong?'long':'short', score, rr,
+      entry, stop, target, zone, backingSR, isSweepZone:isSweep,
+      ts: existing ? existing.ts : Date.now(), // BUG-4 FIX
+      mtfMatch,
+    });
+  });
+
+  newSigs.sort((a,b) => b.score-a.score);
+  S.signals = newSigs.slice(0, 10);
+  renderSignals();
+
+  const badge = document.getElementById('signalNavBadge');
+  const strong = S.signals.filter(s=>s.score>=70).length;
+  badge.textContent = strong; badge.classList.toggle('show', strong>0);
+  document.getElementById('sigLongCount').textContent = S.signals.filter(s=>s.dir==='long').length;
+  document.getElementById('sigShortCount').textContent = S.signals.filter(s=>s.dir==='short').length;
+  document.getElementById('sigSweepCount').textContent = S.signals.filter(s=>s.isSweepZone).length;
+}
+
+function setSignalFilter(f, el){
+  S.signalFilter = f;
+  document.querySelectorAll('.filterChip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderSignals();
+}
+
+function renderSignals(){
+  const el = document.getElementById('signalList');
+  let sigs = S.signals;
+  if(S.signalFilter==='strong') sigs = sigs.filter(s=>s.score>=70);
+  else if(S.signalFilter==='long') sigs = sigs.filter(s=>s.dir==='long');
+  else if(S.signalFilter==='short') sigs = sigs.filter(s=>s.dir==='short');
+  else if(S.signalFilter==='sweep') sigs = sigs.filter(s=>s.isSweepZone);
+
+  if(!sigs.length){ el.innerHTML='<div class="emptyState">Sinyal üretilmedi. Veri yükleyin.</div>'; return; }
+
+  el.innerHTML = sigs.map(sig => {
+    const isLong = sig.dir==='long';
+    const rrPct = Math.min(100, (sig.rr/5)*100).toFixed(0);
+    const scoreStr = sig.score>=70?'🟢 Güçlü':sig.score>=55?'🟡 Orta':'⚪ Zayıf';
+    // BUG-4 FIX: gerçek yaş
+    const age = Math.floor((Date.now()-sig.ts)/60000);
+    const ageStr = age===0?'şimdi':`${age}dk`;
+    const tags = [sig.isSweepZone?'⚡Sweep':'', sig.backingSR?'📍SR':'', sig.mtfMatch?'📊MTF':''].filter(Boolean).join(' ');
+
+    // Backtest badge
+    const btData = runSingleSweepBacktest(sig.zone);
+    const btBadge = btData ? `<span class="btBadge" style="background:${btData.rate>=65?'rgba(34,197,94,.15)':'rgba(239,68,68,.1)'};color:${btData.rate>=65?'var(--green)':'var(--red)'}">BT:${btData.rate}%</span>` : '';
+
+    return `<div class="signalCard ${sig.dir}">
+      <div class="signalHeader">
+        <div class="signalType">
+          ${isLong?'🟢 LONG':'🔴 SHORT'} ${sig.zone.lev.x}x ${btBadge}
+          <span style="font-size:9px;color:var(--t3);font-weight:400">${scoreStr} ${tags}</span>
+        </div>
+        <div class="signalMeta">${ageStr}<br>${sig.score.toFixed(0)}pt</div>
+      </div>
+      <div class="signalLevels">
+        <div class="signalLevel"><div class="signalLevelLbl">Entry</div><div class="signalLevelVal" style="color:var(--blue)">${fmtP(sig.entry)}</div></div>
+        <div class="signalLevel"><div class="signalLevelLbl">Stop</div><div class="signalLevelVal" style="color:var(--red)">${fmtP(sig.stop)}</div></div>
+        <div class="signalLevel"><div class="signalLevelLbl">Hedef</div><div class="signalLevelVal" style="color:var(--green)">${fmtP(sig.target)}</div></div>
+      </div>
+      <div class="rrBar"><div class="rrFill" style="width:${rrPct}%"></div></div>
+      <div class="rrText"><span>R/R Oranı</span><span style="font-weight:700;color:var(--cyan)">${sig.rr.toFixed(2)}x</span></div>
+      <div class="signalActions">
+        <button class="sigBtn" onclick="copySignal('${sig.id}')">📋 Kopyala</button>
+        <button class="sigBtn" onclick="sendToSetup('${sig.id}')">🎯 Setup</button>
+        <button class="sigBtn" onclick="alarmSignal('${sig.id}')">🔔 Alarm</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// BUG-2 FIX: ID tabanlı fonksiyonlar
+function copySignal(id){
+  const s = S.signals.find(x => x.id===id); if(!s) return;
+  const txt = `${S.symbol} ${s.dir.toUpperCase()} ${s.zone.lev.x}x\nEntry: $${fmtP(s.entry)}\nSL: $${fmtP(s.stop)}\nTP: $${fmtP(s.target)}\nR/R: ${s.rr.toFixed(2)}x`;
+  navigator.clipboard?.writeText(txt).then(() => showToast('📋 Kopyalandı!'));
+}
+function sendToSetup(id){
+  const s = S.signals.find(x => x.id===id); if(!s) return;
+  S.setupDir = s.dir;
+  document.getElementById('entryInput').value = s.entry.toFixed(6);
+  document.getElementById('stopInput').value  = s.stop.toFixed(6);
+  document.getElementById('targetInput').value= s.target.toFixed(6);
+  calcSetup(); gotoPage('toolsPage','nav_tools');
+}
+function alarmSignal(id){
+  const s = S.signals.find(x => x.id===id); if(!s) return;
+  addAlarm('price', s.entry, `${S.symbol} ${s.dir.toUpperCase()} Entry @ ${fmtP(s.entry)}`, 0, s.dir==='long'?'below':'above');
+}
+
+// Tek zone için hızlı backtest
+function runSingleSweepBacktest(zone){
+  if(!S.candles.length || !S.sweepLog.length) return null;
+  const zoneSweeps = S.sweepLog.filter(s => Math.abs(s.price-zone.price)/zone.price < 0.005);
+  if(!zoneSweeps.length) return null;
+  let hits=0, total=0;
+  zoneSweeps.forEach(sweep => {
+    const idx = S.candles.findIndex(c => Math.abs(c.time-sweep.ts/1000) < 120);
+    if(idx<0 || idx>=S.candles.length-3) return;
+    const future = S.candles.slice(idx+1, idx+8);
+    if(!future.length) return;
+    const isLong = sweep.side==='Long';
+    const maxMove = isLong
+      ? Math.max(...future.map(c=>c.high))-sweep.price
+      : sweep.price-Math.min(...future.map(c=>c.low));
+    if(maxMove/sweep.price*100 > 0.2) hits++;
+    total++;
+  });
+  if(!total) return null;
+  return {rate: Math.round(hits/total*100), total};
+}
+
+// ══════════════════════════════════════════════════════
+//  SCANNER — findSRUnified ile BUG-6 FIX
+// ══════════════════════════════════════════════════════
+let scanRunning = false;
+function initScanLevFilter(){
+  const el = document.getElementById('scanLevFilter');
+  LEV_CFG.forEach(lev => {
+    const on = S.settings.scanLevFilter.includes(lev.x);
+    const d = document.createElement('div');
+    d.className = 'filterChip'+(on?' active':'');
+    d.style.borderColor = lev.color;
+    d.style.color = on?'#fff':lev.color;
+    d.textContent = lev.x+'x';
+    d.onclick = () => {
+      const idx = S.settings.scanLevFilter.indexOf(lev.x);
+      if(idx>=0) S.settings.scanLevFilter.splice(idx,1);
+      else S.settings.scanLevFilter.push(lev.x);
+      d.classList.toggle('active');
+      d.style.color = S.settings.scanLevFilter.includes(lev.x)?'#fff':lev.color;
+      saveState();
+    };
+    el.appendChild(d);
+  });
+}
+
+async function startScan(){
+  if(scanRunning) return;
+  scanRunning = true;
+  const btn = document.getElementById('scanBtn');
+  btn.textContent='⏳'; btn.disabled=true;
+  const prog = document.getElementById('scanProgressWrap'); prog.style.display='block';
+  const fill = document.getElementById('scanProgressFill'); fill.style.width='0%';
+  const grid = document.getElementById('scannerGrid'); grid.innerHTML='<div class="emptyState">Taranıyor...</div>';
+  const results = [];
+
+  for(let i=0;i<SCANNER_COINS.length;i++){
+    const sym = SCANNER_COINS[i];
+    document.getElementById('scanStatus').textContent = `Tarıyor: ${sym}...`;
+    fill.style.width = ((i+1)/SCANNER_COINS.length*100)+'%';
+    try{
+      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=15m&limit=100`);
+      if(!res.ok){ await sleep(300); continue; }
+      const raw = await res.json();
+      const candles = raw.map(d => ({time:d[0]/1000,open:+d[1],high:+d[2],low:+d[3],close:+d[4],volume:+d[5]}));
+      const price = candles.at(-1).close;
+
+      // BUG-6 FIX: Unified SR fonksiyonu kullan
+      const srLevels = findSRUnified(candles, price, 3);
+      const active = LEV_CFG.filter(l => S.settings.scanLevFilter.includes(l.x));
+      const zones = [];
+      srLevels.forEach(lv => {
+        active.forEach(lev => {
+          const liqP = lv.type==='support' ? lv.price*(1-lev.pct/100) : lv.price*(1+lev.pct/100);
+          const dist = Math.abs(liqP-price)/price*100;
+          zones.push({price:liqP, dist, lev, srType:lv.type, srPrice:lv.price, strength:lv.strength});
+        });
+      });
+      zones.sort((a,b)=>a.dist-b.dist);
+      const nearest = zones[0];
+      if(nearest){
+        const score = (nearest.dist<0.5?40:nearest.dist<1?25:15) +
+                      (nearest.lev.x>=100?20:nearest.lev.x>=50?10:5) +
+                      (nearest.strength*2);
+        results.push({sym, price, nearest, score});
+      }
+    }catch(e){ console.warn('Scanner hata:', SCANNER_COINS[i], e.message); }
+    await sleep(300);
+  }
+
+  results.sort((a,b) => a.nearest.dist-b.nearest.dist);
+  renderScanResults(results);
+  document.getElementById('scanStatus').textContent = `${new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})} · ${results.length} coin`;
+  btn.textContent='▶ Tara'; btn.disabled=false; prog.style.display='none'; scanRunning=false;
+}
+
+function renderScanResults(results){
+  const grid = document.getElementById('scannerGrid');
+  if(!results.length){ grid.innerHTML='<div class="emptyState">Sonuç yok</div>'; return; }
+  grid.innerHTML = results.map(r => {
+    const near = r.nearest;
+    const icon = near.dist<0.5?'🟢':near.dist<1.5?'🟡':'⚪';
+    const side = near.srType==='support'?'Long Liq':'Short Liq';
+    return `<div class="scanRow" onclick="selectScanCoin('${r.sym}')">
+      <div class="scanSymbol" style="color:${near.lev.color}">${r.sym.replace('USDT','')}</div>
+      <div class="scanInfo">
+        <div class="scanLiq" style="color:${near.lev.color}">${near.lev.x}x ${side}</div>
+        <div class="scanDist">${fmtP(r.price)} · ${near.dist.toFixed(2)}% uzakta</div>
+      </div>
+      <div class="scanSetup">${icon}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectScanCoin(sym){ S.symbol=sym; S.sweepLog=[]; S.painHistory=[]; gotoPage('chartPage','nav_chart'); loadData(); }
+
+// ══════════════════════════════════════════════════════
+//  S/R ANALİZİ — Unified fonksiyon (BUG-6 FIX)
+// ══════════════════════════════════════════════════════
+function findSR(candles, sens){ return findSRUnified(candles, S.price||candles.at(-1)?.close||1, sens); }
+
+function findSRUnified(candles, price, sens){
+  const lb = Math.max(2, Math.floor(sens)), raw = [];
+  for(let i=lb;i<candles.length-lb;i++){
+    const c=candles[i]; let hi=true, lo=true;
+    for(let j=i-lb;j<=i+lb;j++){
+      if(j===i) continue;
+      if(candles[j].high>=c.high) hi=false;
+      if(candles[j].low<=c.low) lo=false;
+    }
+    // BUG-6 FIX: scanner ve ana analizde aynı calcStrength kullan
+    if(hi) raw.push({price:c.high, type:'resistance', idx:i, strength:calcStrength(candles,c.high,i,'high')});
+    if(lo) raw.push({price:c.low,  type:'support',    idx:i, strength:calcStrength(candles,c.low, i,'low' )});
+  }
+  return clusterLevels(raw, price);
+}
+
+function calcStrength(candles, price, idx, type){
+  let s=1; const thr=price*0.003;
+  const avgVol = candles.reduce((a,c)=>a+c.volume,0)/candles.length;
+  for(let i=0;i<candles.length;i++){
+    if(i===idx) continue;
+    const diff = type==='high' ? Math.abs(candles[i].high-price) : Math.abs(candles[i].low-price);
+    if(diff<thr) s++;
+  }
+  if(candles[idx].volume > avgVol*2) s+=2;
+  s += (idx/candles.length)*2;
+  return Math.min(s, 10);
+}
+
+function clusterLevels(levels, price){
+  if(!levels.length) return [];
+  levels.sort((a,b)=>a.price-b.price);
+  const ref = price || levels[Math.floor(levels.length/2)].price || 1;
+  const thr = ref*0.008; const out=[]; let i=0;
+  while(i<levels.length){
+    const grp=[levels[i]]; let j=i+1;
+    while(j<levels.length && levels[j].price-levels[i].price<thr) grp.push(levels[j++]);
+    const avg=grp.reduce((s,l)=>s+l.price,0)/grp.length;
+    const maxS=Math.max(...grp.map(l=>l.strength));
+    const supC=grp.filter(l=>l.type==='support').length;
+    out.push({price:avg, type:supC>=grp.length/2?'support':'resistance',
+      strength:Math.min(maxS+(grp.length-1)*.5,10), count:grp.length});
+    i=j;
+  }
+  return out.sort((a,b)=>b.strength-a.strength).slice(0,14).sort((a,b)=>a.price-b.price);
+}
+
+// ══════════════════════════════════════════════════════
+//  CHART ÇİZGİLERİ
+// ══════════════════════════════════════════════════════
+function clearLines(arr){ arr.forEach(l=>{try{candleSeries.removePriceLine(l);}catch(e){}}); arr.length=0; }
+
+function renderLines(){
+  clearLines(srLines); clearLines(liqLines); S.liqZones=[];
+  if(S.settings.showSR) renderSRLines();
+  if(S.settings.showLiq) renderLiqLines();
+  document.getElementById('srBadge').textContent = S.srLevels.length;
+  document.getElementById('liqBadge').textContent = liqLines.length;
+  document.getElementById('heatBadge').innerHTML = S.settings.heatmap?'🌡️ <b>Açık</b>':'🌡️ <b style="color:var(--t3)">Kapalı</b>';
+  scheduleHeatDraw();
+}
+
+function renderSRLines(){
+  S.srLevels.forEach(lv => {
+    const isS=lv.type==='support';
+    const alpha=Math.min(0.9,0.3+lv.strength*0.06).toFixed(2);
+    // MTF confluence varsa daha kalın
+    const mtf = S.mtfLevels.find(ml => Math.abs(ml.price-lv.price)/lv.price<0.005);
+    const lw = mtf&&mtf.tfs.length>=2 ? 2 : (lv.strength>7?2:1);
+    srLines.push(candleSeries.createPriceLine({
+      price:lv.price, color:isS?`rgba(34,197,94,${alpha})`:`rgba(239,68,68,${alpha})`,
+      lineWidth:lw, lineStyle:LightweightCharts.LineStyle.Dashed,
+      axisLabelVisible:true, title:`${isS?'S':'R'} ${fmtP(lv.price)}${mtf&&mtf.tfs.length>=2?' ★':''}`,
+    }));
+  });
+}
+
+// BUG sorunu-9 FIX: Yakın zone'ları gruplama (etiket çakışması önleme)
+function renderLiqLines(){
+  const active = LEV_CFG.filter(l => S.settings.leverages.includes(l.x));
+  S.srLevels.forEach(lv => {
+    active.forEach(lev => {
+      const isS=lv.type==='support';
+      const liqP = isS ? lv.price*(1-lev.pct/100) : lv.price*(1+lev.pct/100);
+      const dist = Math.abs(liqP-S.price)/S.price*100;
+      S.liqZones.push({price:liqP, dist, lev, srType:lv.type, srPrice:lv.price, strength:lv.strength});
+      liqLines.push(candleSeries.createPriceLine({
+        price:liqP, color:lev.color+'aa', lineWidth:1,
+        lineStyle:LightweightCharts.LineStyle.Dotted,
+        axisLabelVisible:false, // Etiket çakışmasını önle
+        title:'',
+      }));
+    });
+  });
+  S.liqZones.sort((a,b)=>a.dist-b.dist);
+}
+
+// ══════════════════════════════════════════════════════
+//  ISI HARİTASI
+// ══════════════════════════════════════════════════════
+const heatCanvas = document.getElementById('heatCanvas');
+const hctx = heatCanvas.getContext('2d');
+let heatTimer = null;
+
+function resizeCanvases(){
+  const wrap = document.getElementById('chartWrap');
+  const w=wrap.clientWidth, h=wrap.clientHeight;
+  if(w>0 && h>0){
+    [heatCanvas, sweepCanvas, document.getElementById('whaleCanvas')].forEach(c => { c.width=w; c.height=h; });
+  }
+}
+
+function scheduleHeatDraw(){ clearTimeout(heatTimer); heatTimer=setTimeout(drawHeatmap, 32); }
+
+function drawHeatmap(){
+  const W=heatCanvas.width, H=heatCanvas.height;
+  hctx.clearRect(0,0,W,H);
+  if(!S.settings.heatmap||!S.srLevels.length||!S.price||W<=1) return;
+  const active = LEV_CFG.filter(l=>S.settings.leverages.includes(l.x));
+  if(!active.length) return;
+
+  function pToY(p){ try{ const y=chart.priceScale('right').priceToCoordinate(p); return(typeof y==='number'&&isFinite(y))?y:null; }catch(e){ return null; } }
+  function band(price, hex, intensity, halfPx){
+    if(intensity<=0.015||halfPx<1) return;
+    const y=pToY(price); if(y===null) return;
+    if(y+halfPx<0||y-halfPx>H) return;
+    const [r,g,b]=hexToRgb(hex); const a=Math.min(intensity*S.settings.heatOpacity,0.9);
+    const grad=hctx.createLinearGradient(0,y-halfPx,0,y+halfPx);
+    grad.addColorStop(0,`rgba(${r},${g},${b},0)`);
+    grad.addColorStop(.25,`rgba(${r},${g},${b},${(a*.5).toFixed(3)})`);
+    grad.addColorStop(.5,`rgba(${r},${g},${b},${a.toFixed(3)})`);
+    grad.addColorStop(.75,`rgba(${r},${g},${b},${(a*.5).toFixed(3)})`);
+    grad.addColorStop(1,`rgba(${r},${g},${b},0)`);
+    hctx.fillStyle=grad; hctx.fillRect(0,Math.round(y-halfPx),W,Math.round(halfPx*2));
+  }
+
+  S.srLevels.forEach(lv => {
+    const ns=lv.strength/10; const df=S.settings.heatDecay?(0.35+ns*0.65):1.0;
+    const mtf=S.mtfLevels.find(ml=>Math.abs(ml.price-lv.price)/lv.price<0.005);
+    const mtfBonus=mtf?mtf.tfs.length*0.1:0;
+    band(lv.price, lv.type==='support'?'#22c55e':'#ef4444', (ns*df*.45)+mtfBonus, 5+(mtf?3:0));
+    active.forEach(lev => {
+      const isS=lv.type==='support';
+      const lp=isS?lv.price*(1-lev.pct/100):lv.price*(1+lev.pct/100);
+      const dp=Math.abs(lp-S.price)/S.price; const df2=Math.max(0,1-dp*10);
+      band(lp, lev.color, ns*df*df2*.85, Math.max(2,Math.round(18*ns*(10/lev.x)**.4)));
+    });
+  });
+
+  const yn=pToY(S.price);
+  if(yn!==null){
+    const gp=hctx.createLinearGradient(0,yn-3,0,yn+3);
+    gp.addColorStop(0,'rgba(255,255,255,0)'); gp.addColorStop(.5,'rgba(255,255,255,0.07)'); gp.addColorStop(1,'rgba(255,255,255,0)');
+    hctx.fillStyle=gp; hctx.fillRect(0,yn-3,W,6);
+  }
+}
+
+function hexToRgb(hex){
+  let c=hex.replace('#',''); if(c.length===3) c=c.split('').map(x=>x+x).join('');
+  const n=parseInt(c,16); return[(n>>16)&255,(n>>8)&255,n&255];
+}
+
+// ══════════════════════════════════════════════════════
+//  SETUP BUILDER — BUG-5 FIX (mapInner kaldırıldı)
+// ══════════════════════════════════════════════════════
+function setDir(d){
+  S.setupDir=d;
+  document.getElementById('dirLong').classList.toggle('active', d==='long');
+  document.getElementById('dirShort').classList.toggle('active', d==='short');
+  calcSetup();
+}
+
+function autoEntry(){ const nz=S.liqZones[0]; if(nz) document.getElementById('entryInput').value=(nz.price*(S.setupDir==='long'?1.0015:0.9985)).toFixed(6); else document.getElementById('entryInput').value=S.price.toFixed(6); calcSetup(); }
+function autoStop(){
+  const entry=parseFloat(document.getElementById('entryInput').value)||S.price;
+  const isLong=S.setupDir==='long';
+  const backing=isLong?S.srLevels.filter(lv=>lv.type==='support'&&lv.price<entry).sort((a,b)=>b.price-a.price)[0]:S.srLevels.filter(lv=>lv.type==='resistance'&&lv.price>entry).sort((a,b)=>a.price-b.price)[0];
+  const stop=backing?backing.price*(isLong?0.998:1.002):entry*(isLong?0.99:1.01);
+  document.getElementById('stopInput').value=stop.toFixed(6); calcSetup();
+}
+function autoTarget(){
+  const entry=parseFloat(document.getElementById('entryInput').value)||S.price;
+  const isLong=S.setupDir==='long';
+  const nextSR=isLong?S.srLevels.filter(lv=>lv.price>entry).sort((a,b)=>a.price-b.price)[0]:S.srLevels.filter(lv=>lv.price<entry).sort((a,b)=>b.price-a.price)[0];
+  document.getElementById('targetInput').value=(nextSR?nextSR.price:entry*(isLong?1.02:0.98)).toFixed(6); calcSetup();
+}
+
+function calcSetup(){
+  const entry=parseFloat(document.getElementById('entryInput').value);
+  const stop=parseFloat(document.getElementById('stopInput').value);
+  const target=parseFloat(document.getElementById('targetInput').value);
+  const capital=parseFloat(document.getElementById('capitalInput').value)||1000;
+  const res=document.getElementById('setupResults');
+  if(!entry||!stop||!target||Math.abs(entry-stop)<0.000001){res.style.display='none';return;}
+  const risk=Math.abs(entry-stop), reward=Math.abs(target-entry), rr=reward/risk;
+  const riskPct=risk/entry*100, rewardPct=reward/entry*100;
+  const riskDollar=capital*(riskPct/100), lot=riskDollar/risk;
+  res.style.display='block';
+  const rrEl=document.getElementById('rrBig');
+  rrEl.textContent=rr.toFixed(2)+'x R/R';
+  rrEl.style.color=rr>=3?'var(--green)':rr>=2?'var(--yellow)':'var(--red)';
+  document.getElementById('setupResultRows').innerHTML=`
+    <div class="setupResultRow"><span class="setupResultLbl">Risk</span><span class="setupResultVal dn">${riskPct.toFixed(2)}% · $${riskDollar.toFixed(2)}</span></div>
+    <div class="setupResultRow"><span class="setupResultLbl">Kazanç</span><span class="setupResultVal up">${rewardPct.toFixed(2)}% · $${(riskDollar*rr).toFixed(2)}</span></div>
+    <div class="setupResultRow"><span class="setupResultLbl">Pozisyon</span><span class="setupResultVal">${lot.toFixed(4)} birim</span></div>
+    <div class="setupResultRow"><span class="setupResultLbl">Yön</span><span class="setupResultVal ${S.setupDir==='long'?'up':'dn'}">${S.setupDir==='long'?'🟢 LONG':'🔴 SHORT'}</span></div>`;
+  // BUG-5 FIX: mapInner kaldırıldı
+  const map = document.getElementById('riskMap');
+  map.innerHTML = '';
+  const mn=Math.min(stop,entry,target), mx=Math.max(stop,entry,target), range=mx-mn||1;
+  const toX = v => 8 + (v-mn)/range*84; // %8 → %92
+  [{v:stop,c:'var(--red)',l:'SL'},{v:entry,c:'var(--blue)',l:'E'},{v:target,c:'var(--green)',l:'TP'}].forEach(({v,c,l}) => {
+    const pct = toX(v);
+    const dot = document.createElement('div');
+    dot.style.cssText=`position:absolute;width:10px;height:10px;border-radius:50%;background:${c};top:50%;left:${pct}%;transform:translate(-50%,-50%);z-index:1`;
+    const lbl = document.createElement('div');
+    lbl.style.cssText=`position:absolute;font-size:9px;font-weight:700;color:${c};top:calc(50% + 8px);left:${pct}%;transform:translateX(-50%);white-space:nowrap`;
+    lbl.textContent=l; map.appendChild(dot); map.appendChild(lbl);
+  });
+  const line = document.createElement('div');
+  line.style.cssText=`position:absolute;top:50%;left:8%;width:84%;height:3px;background:var(--border);border-radius:2px;transform:translateY(-50%)`;
+  map.insertBefore(line, map.firstChild);
+}
+
+function saveSetup(){
+  const entry=parseFloat(document.getElementById('entryInput').value);
+  const stop=parseFloat(document.getElementById('stopInput').value);
+  const target=parseFloat(document.getElementById('targetInput').value);
+  if(!entry||!stop||!target) return;
+  const rr=(Math.abs(target-entry)/Math.abs(entry-stop)).toFixed(2);
+  S.setupHistory.unshift({id:Date.now(),symbol:S.symbol,dir:S.setupDir,entry,stop,target,rr,ts:Date.now()});
+  if(S.setupHistory.length>10) S.setupHistory.pop();
+  saveState(); renderSetupHistory(); showToast('💾 Setup kaydedildi!');
+}
+
+function copySetup(){
+  const entry=parseFloat(document.getElementById('entryInput').value);
+  const stop=parseFloat(document.getElementById('stopInput').value);
+  const target=parseFloat(document.getElementById('targetInput').value);
+  if(!entry) return;
+  navigator.clipboard?.writeText(`${S.symbol} ${S.setupDir.toUpperCase()}\nEntry: $${fmtP(entry)}\nSL: $${fmtP(stop)}\nTP: $${fmtP(target)}`).then(()=>showToast('📋 Kopyalandı!'));
+}
+
+function alarmSetup(){
+  const entry=parseFloat(document.getElementById('entryInput').value);
+  if(!entry) return;
+  addAlarm('price',entry,`${S.symbol} ${S.setupDir.toUpperCase()} Entry @ ${fmtP(entry)}`,0,S.setupDir==='long'?'below':'above');
+}
+
+function renderSetupHistory(){
+  const card=document.getElementById('setupHistCard'), el=document.getElementById('setupHistory');
+  if(!S.setupHistory.length){card.style.display='none';return;}
+  card.style.display='block';
+  el.innerHTML=S.setupHistory.map((s,i)=>`
+    <div class="histItem" style="border-color:${s.dir==='long'?'var(--green)':'var(--red)'}" onclick="loadSetup(${i})">
+      <span style="color:${s.dir==='long'?'var(--green)':'var(--red)'};font-weight:700">${s.dir.toUpperCase()}</span>
+      ${s.symbol} · E:${fmtP(s.entry)} · ${s.rr}x R/R
+      <span style="color:var(--t3);font-size:9px"> · ${new Date(s.ts).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}</span>
+    </div>`).join('');
+}
+
+function loadSetup(i){ const s=S.setupHistory[i]; if(!s) return; setDir(s.dir); document.getElementById('entryInput').value=s.entry; document.getElementById('stopInput').value=s.stop; document.getElementById('targetInput').value=s.target; calcSetup(); }
+
+// ══════════════════════════════════════════════════════
+//  UI GÜNCELLEMELERI
+// ══════════════════════════════════════════════════════
+function updateTopBar(){
+  const chg=S.openP>0?(S.price-S.openP)/S.openP*100:0;
+  document.getElementById('topPrice').textContent=S.price>0?'$'+fmtP(S.price):'—';
+  document.getElementById('topChange').textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';
+  document.getElementById('topChange').className=chg>=0?'up':'dn';
+}
+
+function updateInfoStrip(){
+  const p=S.price;
+  const sup=S.srLevels.filter(l=>l.type==='support'&&l.price<p);
+  const res=S.srLevels.filter(l=>l.type==='resistance'&&l.price>p);
+  document.getElementById('iNearS').textContent=sup.at(-1)?fmtP(sup.at(-1).price):'—';
+  document.getElementById('iNearR').textContent=res[0]?fmtP(res[0].price):'—';
+  document.getElementById('i24H').textContent=S.high24?fmtP(S.high24):'—';
+  document.getElementById('i24L').textContent=S.low24?fmtP(S.low24):'—';
+  document.getElementById('i24V').textContent=S.vol24?fmtVol(S.vol24):'—';
+  const strong=[...S.srLevels].sort((a,b)=>b.strength-a.strength)[0];
+  document.getElementById('iStrong').textContent=strong?fmtP(strong.price):'—';
+}
+
+function updateLevelsPage(){
+  const res=S.srLevels.filter(l=>l.type==='resistance').sort((a,b)=>b.price-a.price);
+  const sup=S.srLevels.filter(l=>l.type==='support').sort((a,b)=>b.price-a.price);
+  document.getElementById('resCount').textContent=res.length;
+  document.getElementById('supCount').textContent=sup.length;
+  renderLvList('resList',res,'#ef4444');
+  renderLvList('supList',sup,'#22c55e');
+  renderMTFLevels();
+}
+
+function renderLvList(id, levels, color){
+  const el=document.getElementById(id);
+  if(!levels.length){el.innerHTML='<div class="emptyState">Seviye bulunamadı</div>';return;}
+  el.innerHTML=levels.map(lv=>{
+    const dist=(lv.price-S.price)/S.price*100;
+    const dStr=(dist>=0?'+':'')+dist.toFixed(2)+'%';
+    const sp=Math.min(100,lv.strength/10*100).toFixed(0);
+    const mtf=S.mtfLevels.find(ml=>Math.abs(ml.price-lv.price)/lv.price<0.005);
+    const tfBadges=mtf?mtf.tfs.map(tf=>`<span class="tfTag" style="color:var(--blue);border-color:rgba(59,130,246,.4)">${TF_LABELS[tf]||tf}</span>`).join(''):'';
+    return `<div class="lvRow">
+      <div class="lvDot" style="background:${color};box-shadow:0 0 4px ${color}55"></div>
+      <div class="lvInfo">
+        <div class="lvPrice">${fmtP(lv.price)}${mtf&&mtf.tfs.length>=2?' ★':''}</div>
+        <div class="lvMeta">Güç: ${lv.strength.toFixed(1)} · ${lv.count||1}x</div>
+        ${tfBadges?`<div class="tfBadges">${tfBadges}</div>`:''}
+      </div>
+      <div class="lvRight">
+        <div class="lvDist ${dist>=0?'dn':'up'}">${dStr}</div>
+        <div class="strBar"><div class="strFill" style="width:${sp}%;background:${color}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  FAB
+// ══════════════════════════════════════════════════════
+function toggleFab(){
+  fabOpen=!fabOpen;
+  document.getElementById('fabMenu').classList.toggle('open',fabOpen);
+  document.getElementById('fabMain').textContent=fabOpen?'✕':'⚡';
+}
+function fabAction(type){
+  toggleFab();
+  if(type==='signal'){generateSignals();gotoPage('signalPage','nav_signal');}
+  else if(type==='alarm') openAlarmModal();
+  else if(type==='setup') gotoPage('toolsPage','nav_tools');
+  else if(type==='backtest'){runBacktest();gotoPage('liqPage','nav_liq');}
+  else if(type==='mtf'){fetchMultiTF(loadId);gotoPage('levelsPage','nav_levels');}
+}
+
+// ══════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════
+function initSettings(){
+  const grid=document.getElementById('levGrid');
+  LEV_CFG.forEach(lev=>{
+    const on=S.settings.leverages.includes(lev.x);
+    const div=document.createElement('div');
+    div.className='levCard'+(on?' on':''); div.style.color=lev.color;
+    div.innerHTML=`<div class="levX">${lev.x}x</div><div class="levP">±${lev.pct}%</div>`;
+    div.onclick=()=>{
+      const idx=S.settings.leverages.indexOf(lev.x);
+      if(idx>=0) S.settings.leverages.splice(idx,1); else S.settings.leverages.push(lev.x);
+      div.classList.toggle('on');
+      if(S.candles.length){renderLines();updateLiqPageFull();updateInfoStrip();}
+      saveState();
+    };
+    grid.appendChild(div);
+  });
+
+  const srSl=document.getElementById('srSlider'); srSl.value=S.settings.sensitivity;
+  document.getElementById('srSliderVal').textContent=S.settings.sensitivity;
+  let srTimer;
+  const applySR=()=>{S.settings.sensitivity=+srSl.value;if(S.candles.length){S.srLevels=findSR(S.candles,S.settings.sensitivity);renderLines();updateLevelsPage();updateLiqPageFull();}saveState();};
+  srSl.oninput=()=>{document.getElementById('srSliderVal').textContent=srSl.value;clearTimeout(srTimer);srTimer=setTimeout(applySR,300);};
+  srSl.addEventListener('touchend',()=>{clearTimeout(srTimer);applySR();});
+
+  const hoSl=document.getElementById('heatOpacity'); hoSl.value=Math.round(S.settings.heatOpacity*100);
+  document.getElementById('heatOpacityVal').textContent=hoSl.value;
+  let hoTimer;
+  hoSl.oninput=()=>{document.getElementById('heatOpacityVal').textContent=hoSl.value;clearTimeout(hoTimer);hoTimer=setTimeout(()=>{S.settings.heatOpacity=hoSl.value/100;scheduleHeatDraw();saveState();},40);};
+
+  ['heatmap','heatDecay','showSR','showLiq','showVolume','sweepDetect','whaleAlert','sweepMarkers'].forEach(key=>{
+    const el=document.getElementById('tog_'+key); if(el) el.classList.toggle('on',S.settings[key]);
+  });
+}
+
+function toggleSet(key){
+  S.settings[key]=!S.settings[key];
+  const el=document.getElementById('tog_'+key); if(el) el.classList.toggle('on',S.settings[key]);
+  if(key==='showVolume') volumeSeries.applyOptions({visible:S.settings.showVolume});
+  else if(S.candles.length) renderLines();
+  if(key==='heatmap'||key==='heatDecay') scheduleHeatDraw();
+  if(key==='sweepMarkers') drawSweepMarkers();
+  saveState();
+}
+
+// ══════════════════════════════════════════════════════
+//  NAVIGASYON
+// ══════════════════════════════════════════════════════
+function gotoPage(pageId, navId){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.navItem').forEach(n=>n.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  document.getElementById(navId).classList.add('active');
+  if(pageId==='chartPage'){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const el=document.getElementById('liveChart');
+      if(chart&&el.clientWidth>0&&el.clientHeight>0){chart.resize(el.clientWidth,el.clientHeight);resizeCanvases();scheduleHeatDraw();drawSweepMarkers();}
+    }));
+  }
+  if(pageId==='liqPage') updateLiqPageFull();
+  if(pageId==='signalPage') generateSignals();
+  if(pageId==='toolsPage') renderSetupHistory();
+  if(pageId==='levelsPage') renderMTFLevels();
+  if(fabOpen) toggleFab();
+}
+
+// ══════════════════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════════════════
+function openModal(){ document.getElementById('modal').classList.add('open'); setTimeout(()=>document.getElementById('searchInput').focus(),120); }
+function closeModal(){ document.getElementById('modal').classList.remove('open'); document.getElementById('searchInput').blur(); }
+function setQuick(sym){ document.getElementById('searchInput').value=sym; }
+function confirmSymbol(){
+  let val=document.getElementById('searchInput').value.trim().toUpperCase();
+  if(!val) return;
+  if(!val.endsWith('USDT')&&!val.endsWith('BTC')&&!val.endsWith('ETH')&&!val.endsWith('BNB')) val+='USDT';
+  closeModal(); S.symbol=val; S.sweepLog=[]; S.painHistory=[]; loadData();
+}
+
+document.querySelectorAll('.tfBtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    if(btn.dataset.tf===S.tf) return;
+    document.querySelectorAll('.tfBtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); S.tf=btn.dataset.tf;
+    if(S.candles.length||S.symbol) loadData(); saveState();
+  });
+});
+
+// ══════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════
+function flashScreen(color){ const el=document.getElementById('screenFlash'); el.style.background=color; el.style.opacity='.12'; setTimeout(()=>el.style.opacity='0',400); }
+function fmtP(p){ if(!p||isNaN(p)) return '—'; if(p>=100000) return p.toLocaleString('en-US',{maximumFractionDigits:0}); if(p>=10000) return p.toLocaleString('en-US',{maximumFractionDigits:1}); if(p>=1000) return p.toLocaleString('en-US',{maximumFractionDigits:2}); if(p>=1) return p.toFixed(4); if(p>=0.01) return p.toFixed(5); return p.toFixed(7); }
+function fmtVol(v){ if(!v||isNaN(v)) return '—'; if(v>=1e9) return (v/1e9).toFixed(1)+'B'; if(v>=1e6) return (v/1e6).toFixed(1)+'M'; if(v>=1e3) return (v/1e3).toFixed(1)+'K'; return v.toFixed(0); }
+function setLiveDot(on){ document.getElementById('liveDot').classList.toggle('on',on); }
+function showLoading(txt){ document.getElementById('loadTxt').textContent=txt||'...'; document.getElementById('loadingOverlay').classList.add('show'); }
+function hideLoading(){ document.getElementById('loadingOverlay').classList.remove('show'); }
+let toastTimer;
+function showToast(msg,ms=2800){ clearTimeout(toastTimer); const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); toastTimer=setTimeout(()=>t.classList.remove('show'),ms); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  loadState();
+  initChart();
+  initSettings();
+  initScanLevFilter();
+  updateAlarmUI();
+  renderSetupHistory();
+  loadData();
+});
+</script>
+</body>
+</html>

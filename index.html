@@ -343,7 +343,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
   </div>
   <div id="priceWrap">
     <div id="topPrice">—</div>
-    <div id="topMeta"><div id="topChange" class="up">+0.00%</div><div id="liveDot"></div></div>
+    <div id="topMeta"><div id="topChange" class="up">+0.00%</div><div id="countdown" style="font-size:10px;font-weight:700;color:var(--cyan);font-variant-numeric:tabular-nums">--:--</div><div id="liveDot"></div></div>
   </div>
   <div id="tfRow">
     <div class="tfBtn" data-tf="1m">1m</div>
@@ -734,7 +734,7 @@ function clearStorage(){
 // ══════════════════════════════════════════════════════
 const S = {
   symbol:'BTCUSDT', tf:'1h',
-  price:0, openP:0, high24:0, low24:0, vol24:0,
+  price:0, livePrice:0, openP:0, high24:0, low24:0, vol24:0,
   candles:[], srLevels:[], liqZones:[],
   sweepLog:[], painHistory:[], signals:[],
   setupHistory:[], alarms:[], signalFilter:'all', setupDir:'long',
@@ -766,7 +766,7 @@ const TF_LABELS = {'1m':'1M','5m':'5M','15m':'15M','1h':'1H','4h':'4H','1d':'1D'
 
 let chart=null, candleSeries=null, volumeSeries=null;
 let srLines=[], liqLines=[];
-let ws=null, wsAgg=null, wsSymbol='', wsTf='';
+let ws=null, wsAgg=null, wsPrice=null, wsSymbol='', wsTf='';
 let loadId=0, lastTickerUpd=0;
 let painUpdTimer=null, sweepAlertTimer=null, whaleAlertTimer=null, fabOpen=false;
 let sigGenTimer=null;
@@ -783,6 +783,7 @@ function initChart(){
     crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
     rightPriceScale:{borderColor:'#2a2a38'},
     timeScale:{borderColor:'#2a2a38', timeVisible:true, secondsVisible:false},
+    localization:{timeFormatter: t => new Date(t*1000).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})},
     handleScroll:true, handleScale:true,
   });
   
@@ -812,8 +813,19 @@ function initChart(){
     }
   });
   ro.observe(container);
-  chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+  let chartRangeSaveTimer = null;
+  chart.timeScale().subscribeVisibleLogicalRangeChange(range => {
     scheduleHeatDraw(); drawSweepMarkers();
+    // Kaç mum gösterildiğini kaydet (TF bağımsız)
+    if(range && range.from != null && range.to != null) {
+      const barCount = Math.round(range.to - range.from);
+      if(barCount > 2) {
+        clearTimeout(chartRangeSaveTimer);
+        chartRangeSaveTimer = setTimeout(() => {
+          try{ localStorage.setItem('liqmap_chartrange', barCount); }catch(e){}
+        }, 500);
+      }
+    }
   });
 }
 
@@ -846,7 +858,15 @@ async function loadData(){
     candleSeries.setData(S.candles);
     volumeSeries.setData(buildVolData(S.candles));
     volumeSeries.applyOptions({visible: S.settings.showVolume});
-    chart.timeScale().fitContent();
+    // Kaydedilmiş mum sayısı varsa uygula, yoksa fitContent
+    try{
+      const saved = localStorage.getItem('liqmap_chartrange');
+      if(saved){
+        const barCount = parseInt(saved);
+        const total = S.candles.length;
+        chart.timeScale().setVisibleLogicalRange({from: total - barCount, to: total});
+      } else chart.timeScale().fitContent();
+    }catch(e){ chart.timeScale().fitContent(); }
     S.price = S.candles.at(-1).close;
     S.openP = S.candles.at(-1).open;
     S.lastCandleForSweep = {...S.candles.at(-1)};
@@ -866,7 +886,6 @@ async function loadData(){
 
     setLiveDot(true);
     connectWS(myId);
-    connectAggWS(myId);
     saveState();
 
     // Multi-TF analizi (arka planda)
@@ -890,7 +909,16 @@ async function fetch24h(myId){
     S.price=parseFloat(d.lastPrice); S.openP=parseFloat(d.openPrice);
     S.high24=parseFloat(d.highPrice); S.low24=parseFloat(d.lowPrice);
     S.vol24=parseFloat(d.quoteVolume);
-  }catch(e){}
+    updateTopBar();
+  }catch(e){
+    // fallback: markPrice
+    try{
+      const r2 = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${S.symbol}`);
+      if(!r2.ok) return;
+      const d2 = await r2.json();
+      if(d2.markPrice) { S.price=parseFloat(d2.markPrice); updateTopBar(); }
+    }catch(e2){}
+  }
 }
 
 function buildVolData(c){
@@ -906,20 +934,19 @@ function buildVolData(c){
 async function fetchMultiTF(myId){
   const allLevels = [];
   try{
-    for(const tf of MTF_LIST){
-      if(myId !== loadId) return;
-      const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S.symbol}&interval=${tf}&limit=100`);
-      if(!res.ok) continue;
-      const raw = await res.json();
-      const candles = raw.map(d => ({
-        time:d[0]/1000, open:+d[1], high:+d[2], low:+d[3], close:+d[4], volume:+d[5],
-      }));
-      const price = candles.at(-1).close;
-      const levels = findSRUnified(candles, price, 4);
-      levels.forEach(lv => allLevels.push({...lv, tf}));
-      await sleep(300);
-    }
+    const results = await Promise.allSettled(
+      MTF_LIST.map(tf =>
+        fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S.symbol}&interval=${tf}&limit=100`)
+          .then(r => r.ok ? r.json() : null)
+          .then(raw => {
+            if(!raw) return [];
+            const candles = raw.map(d => ({time:d[0]/1000,open:+d[1],high:+d[2],low:+d[3],close:+d[4],volume:+d[5]}));
+            return findSRUnified(candles, candles.at(-1).close, 4).map(lv => ({...lv, tf}));
+          })
+      )
+    );
     if(myId !== loadId) return;
+    results.forEach(r => { if(r.status==='fulfilled') allLevels.push(...r.value); });
 
     // Çakışan seviyeleri bul (farklı TF'lerde aynı bölge)
     const confluenceLevels = findMTFConfluence(allLevels);
@@ -991,156 +1018,129 @@ function renderMTFLevels(){
 // ══════════════════════════════════════════════════════
 function closeWS(){
   return new Promise(resolve => {
-    const toClose = [ws, wsAgg].filter(Boolean);
-    if(!toClose.length){ ws=null; wsAgg=null; resolve(); return; }
+    const toClose = [ws, wsPrice].filter(Boolean);
+    ws=null; wsPrice=null;
+    if(!toClose.length){ resolve(); return; }
     let closed = 0;
+    const done = () => { if(++closed >= toClose.length) resolve(); };
     toClose.forEach(w => {
-      if(w.readyState === WebSocket.CLOSED){ closed++; if(closed===toClose.length){ ws=null; wsAgg=null; resolve(); } return; }
-      w.onclose = () => { closed++; if(closed===toClose.length){ ws=null; wsAgg=null; resolve(); } };
-      w.onerror = () => {};
-      w.close();
+      if(w.readyState === WebSocket.CLOSED){ done(); return; }
+      w.onclose = done; w.onerror = done;
+      try{ w.close(); }catch(e){ done(); }
     });
-    setTimeout(() => { ws=null; wsAgg=null; resolve(); }, 2000);
+    setTimeout(resolve, 1500);
   });
 }
 
 function connectWS(myId){
-  if(ws && wsSymbol===S.symbol && wsTf===S.tf) return;
+  if(ws && ws.readyState === WebSocket.OPEN && wsSymbol===S.symbol && wsTf===S.tf) return;
   wsSymbol=S.symbol; wsTf=S.tf;
-  const newWs = new WebSocket(`wss://fstream.binance.com/ws/${S.symbol.toLowerCase()}@kline_${S.tf}`);
+  // @kline bu ağda çalışmıyor — @trade'den mum güncelliyoruz
+  const newWs = new WebSocket(`wss://fstream.binance.com/ws/${S.symbol.toLowerCase()}@trade`);
 
-  newWs.onopen = () => { if(myId!==loadId){newWs.close();return;} ws=newWs; setLiveDot(true); };
-  newWs.onerror = () => setLiveDot(false);
+  newWs.onopen = () => {
+    if(myId!==loadId){newWs.close();return;}
+    ws=newWs;
+    setLiveDot(true);
+  };
+  newWs.onerror = () => { setLiveDot(false); };
   newWs.onclose = () => {
     if(ws===newWs) ws=null;
     setLiveDot(false);
     if(myId===loadId && wsSymbol===S.symbol) setTimeout(() => { if(myId===loadId) connectWS(myId); }, 3000);
   };
 
+  // TF süresi ms cinsinden
+  const tfMs = {'1m':60000,'5m':300000,'15m':900000,'1h':3600000,'4h':14400000,'1d':86400000}[S.tf] || 3600000;
+
   newWs.onmessage = event => {
     if(myId !== loadId) return;
-
     let data; try{ data=JSON.parse(event.data); }catch(e){ return; }
-    const k = data.k; if(!k) return;
-    if(k.s && k.s !== S.symbol) return;
+    if(data.s && data.s !== S.symbol) return;
+    const price = parseFloat(data.p);
+    const vol   = parseFloat(data.q);
+    if(!price || price <= 0) return;
 
-    // BUG-1 FIX: WS'den tam candle (high/low/close) al
-    const candle = {
-      time:k.t/1000, open:parseFloat(k.o), high:parseFloat(k.h),
-      low:parseFloat(k.l), close:parseFloat(k.c), volume:parseFloat(k.v),
-    };
+    // Hangi muma ait? (TF'e göre mum başlangıç zamanı)
+    const tradeTs = data.T; // ms
+    const candleTime = Math.floor(tradeTs / tfMs) * tfMs / 1000; // saniye
 
     const last = S.candles.at(-1);
     if(!last) return;
 
-    if(last.time === candle.time){
+    let candle;
+    if(last.time === candleTime){
+      // Mevcut mumu güncelle
+      candle = {
+        time: candleTime,
+        open: last.open,
+        high: Math.max(last.high, price),
+        low:  Math.min(last.low,  price),
+        close: price,
+        volume: last.volume + vol,
+      };
       S.candles[S.candles.length-1] = candle;
-      try{
-        candleSeries.update(candle);
-        volumeSeries.update({time:candle.time, value:candle.volume, color:candle.close>=candle.open?'rgba(34,197,94,.4)':'rgba(239,68,68,.4)'});
-      }catch(e){}
-    } else if(candle.time > last.time){
+    } else if(candleTime > last.time){
+      // Yeni mum
+      candle = { time:candleTime, open:price, high:price, low:price, close:price, volume:vol };
       S.candles.push(candle);
       if(S.candles.length > 500) S.candles.shift();
-      try{
-        candleSeries.update(candle);
-        volumeSeries.update({time:candle.time, value:candle.volume, color:candle.close>=candle.open?'rgba(34,197,94,.4)':'rgba(239,68,68,.4)'});
-      }catch(e){}
+    } else {
+      return; // geçmiş trade, yoksay
     }
 
+    try{
+      candleSeries.update(candle);
+      volumeSeries.update({time:candle.time, value:candle.volume, color:candle.close>=candle.open?'rgba(34,197,94,.4)':'rgba(239,68,68,.4)'});
+    }catch(e){}
+
     const prevCandle = S.lastCandleForSweep;
-    S.price = candle.close; S.openP = candle.open;
+    S.price = price; S.openP = candle.open;
     S.lastCandleForSweep = {...candle};
 
-    // Zone mesafelerini güncelle
     S.liqZones.forEach(z => z.dist = Math.abs(z.price-S.price)/S.price*100);
     S.liqZones.sort((a,b) => a.dist-b.dist);
 
-    // BUG-1 FIX: sweep tespiti tam candle ile
-    if(S.settings.sweepDetect && prevCandle) checkSweep(candle, prevCandle);
+    // Sweep tespiti: sadece yeni mum açıldığında önceki mumu kontrol et
+    // (her trade'de değil — yanlış sinyal önleme)
+    if(S.settings.sweepDetect && prevCandle && prevCandle.time !== candle.time){
+      checkSweep(prevCandle, null);
+    }
     checkAlarms();
 
     clearTimeout(painUpdTimer);
     painUpdTimer = setTimeout(() => {
-      updatePainDynamic();
-      updateProximityMeter();
-      updateInfoStrip();
-      scheduleHeatDraw();
-      drawSweepMarkers();
+      updatePainDynamic(); updateProximityMeter();
+      updateInfoStrip(); scheduleHeatDraw(); drawSweepMarkers();
     }, 600);
 
-    // Sinyal güncellemesi daha seyrek (5s)
     clearTimeout(sigGenTimer);
     sigGenTimer = setTimeout(generateSignals, 5000);
 
-    updateTopBar();
-
     const now = Date.now();
-    if(now - lastTickerUpd > 30000){
+    if(now - lastTickerUpd > 10000){
       lastTickerUpd = now;
       fetch24h(myId).then(updateInfoStrip);
     }
-  };
-}
-
-// ══════════════════════════════════════════════════════
-//  WEBSOCKET — aggTrade (Balina tespiti)
-// ══════════════════════════════════════════════════════
-function connectAggWS(myId){
-  const url = `wss://fstream.binance.com/ws/${S.symbol.toLowerCase()}@trade`;
-  const newWs = new WebSocket(url);
-
-  newWs.onopen = () => { if(myId!==loadId){newWs.close();return;} wsAgg=newWs; };
-  newWs.onerror = () => {};
-  newWs.onclose = () => {
-    if(wsAgg===newWs) wsAgg=null;
-    if(myId===loadId && wsSymbol===S.symbol)
-      setTimeout(() => { if(myId===loadId && S.settings.whaleAlert) connectAggWS(myId); }, 5000);
-  };
-
-  newWs.onmessage = event => {
-    if(myId !== loadId) return;
-    let data; try{ data=JSON.parse(event.data); }catch(e){ return; }
-    const price = parseFloat(data.p);
-    if(!price || price <= 0) return;
-    // Anlık fiyat güncelle
-    S.price = price;
-    updateTopBar();
-    S.liqZones.forEach(z => z.dist = Math.abs(z.price-S.price)/S.price*100);
-    S.liqZones.sort((a,b) => a.dist-b.dist);
-    checkAlarms();
-    setLiveDot(true);
-
-    // Tüm tab'ları güncelle (throttle: 600ms)
-    clearTimeout(painUpdTimer);
-    painUpdTimer = setTimeout(() => {
-      updatePainDynamic();
-      updateProximityMeter();
-      updateInfoStrip();
-      scheduleHeatDraw();
-      drawSweepMarkers();
-    }, 600);
-
-    clearTimeout(sigGenTimer);
-    sigGenTimer = setTimeout(generateSignals, 5000);
-
     // Balina tespiti
-    if(!S.settings.whaleAlert) return;
-    const usd = price * parseFloat(data.q);
-    if(usd < 500000) return;
-    const side = data.m ? 'SELL' : 'BUY';
-    const ev = {
-      time: new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      side, usd, price, ts: Date.now(),
-    };
-    S.whaleLog.unshift(ev);
-    if(S.whaleLog.length > 20) S.whaleLog.pop();
-    showWhaleAlert(ev);
-    const whaleTxt = `${side==='BUY'?'🟢':'🔴'} $${fmtVol(usd)}`;
-    document.getElementById('iWhale').textContent = whaleTxt;
-    if(document.getElementById('iWhale2')) document.getElementById('iWhale2').textContent = whaleTxt;
+    if(S.settings.whaleAlert){
+      const usd = price * vol;
+      if(usd >= 500000){
+        const side = data.m ? 'SELL' : 'BUY';
+        const ev = { time: new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}), side, usd, price, ts: Date.now() };
+        S.whaleLog.unshift(ev); if(S.whaleLog.length > 20) S.whaleLog.pop();
+        showWhaleAlert(ev);
+        const wt = `${side==='BUY'?'🟢':'🔴'} $${fmtVol(usd)}`;
+        document.getElementById('iWhale').textContent = wt;
+        document.getElementById('iWhale2').textContent = wt;
+        setTimeout(() => { document.getElementById('iWhale').textContent='—'; document.getElementById('iWhale2').textContent='—'; }, 30000);
+        drawWhaleCanvas();
+      }
+    }
   };
 }
+// ══════════════════════════════════════════════════════
+// aggTrade balina tespiti connectPriceWS içine taşındı
 
 function showWhaleAlert(ev){
   const el = document.getElementById('whaleAlert');
@@ -1155,7 +1155,7 @@ function showWhaleAlert(ev){
 // ══════════════════════════════════════════════════════
 //  BUG-1 FIX: SWEEP DEDEKTÖRÜ — high/low kullan
 // ══════════════════════════════════════════════════════
-function checkSweep(candle, prevCandle){
+function checkSweep(candle){
   if(!S.liqZones.length) return;
 
   S.liqZones.forEach(zone => {
@@ -1287,6 +1287,35 @@ function drawSweepMarkers(){
     sctx.lineTo(W, y);
     sctx.stroke();
     sctx.setLineDash([]);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  WHALE CANVAS
+// ══════════════════════════════════════════════════════
+function drawWhaleCanvas(){
+  const wc = document.getElementById('whaleCanvas');
+  const ctx = wc.getContext('2d');
+  ctx.clearRect(0, 0, wc.width, wc.height);
+  if(!S.settings.whaleAlert || !S.whaleLog.length || wc.width <= 1) return;
+  function priceToY(p){ try{ const y=chart.priceScale('right').priceToCoordinate(p); return(typeof y==='number'&&isFinite(y))?y:null; }catch(e){ return null; } }
+  const now = Date.now();
+  S.whaleLog.slice(0, 8).forEach(ev => {
+    const y = priceToY(ev.price); if(y===null||y<0||y>wc.height) return;
+    const alpha = Math.max(0.1, 1 - (now - ev.ts) / 900000); // 15dk'da solar
+    const r = Math.min(18, Math.max(6, ev.usd / 200000));
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = ev.side==='BUY' ? '#22c55e' : '#ef4444';
+    ctx.beginPath();
+    ctx.arc(wc.width - 24, y, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.min(r, 10)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ev.side==='BUY'?'B':'S', wc.width-24, y);
+    ctx.restore();
   });
 }
 
@@ -1582,7 +1611,7 @@ function updateLiqList(){
 }
 
 function updateLiqPageFull(){
-  updatePainDynamic(); updateProximityMeter(); updateLiqList(); updateSweepFeed();
+  updatePainDynamic(); updateProximityMeter(); updateLiqList(); updateSweepFeed(); runBacktest();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1591,9 +1620,11 @@ function updateLiqPageFull(){
 function runBacktest(){
   const card = document.getElementById('backtestCard');
   if(!S.sweepLog.length || S.candles.length < 10){ card.style.display='none'; return; }
+  const tfSec = {'1m':60,'5m':300,'15m':900,'1h':3600,'4h':14400,'1d':86400}[S.tf] || 3600;
   const results = [];
   S.sweepLog.forEach(sweep => {
-    const idx = S.candles.findIndex(c => Math.abs(c.time - sweep.ts/1000) < 120);
+    const st = sweep.ts/1000;
+    const idx = S.candles.findIndex(c => st >= c.time && st < c.time + tfSec);
     if(idx < 0 || idx >= S.candles.length-3) return;
     const future = S.candles.slice(idx+1, idx+11);
     if(!future.length) return;
@@ -1602,8 +1633,7 @@ function runBacktest(){
       ? Math.max(...future.map(c=>c.high)) - sweep.price
       : sweep.price - Math.min(...future.map(c=>c.low));
     const movePct = maxMove / sweep.price * 100;
-    const success = maxMove > 0 && movePct > 0.2;
-    results.push({sweep, movePct, success});
+    results.push({sweep, movePct, success: maxMove > 0 && movePct > 0.2});
   });
 
   card.style.display = 'block';
@@ -1686,7 +1716,7 @@ function generateSignals(){
 function setSignalFilter(f, el){
   S.signalFilter = f;
   saveState();
-  document.querySelectorAll('.filterChip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#signalPage .filterChip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSignals();
 }
@@ -1762,9 +1792,11 @@ function runSingleSweepBacktest(zone){
   if(!S.candles.length || !S.sweepLog.length) return null;
   const zoneSweeps = S.sweepLog.filter(s => Math.abs(s.price-zone.price)/zone.price < 0.005);
   if(!zoneSweeps.length) return null;
+  const tfSec = {'1m':60,'5m':300,'15m':900,'1h':3600,'4h':14400,'1d':86400}[S.tf] || 3600;
   let hits=0, total=0;
   zoneSweeps.forEach(sweep => {
-    const idx = S.candles.findIndex(c => Math.abs(c.time-sweep.ts/1000) < 120);
+    const st = sweep.ts/1000;
+    const idx = S.candles.findIndex(c => st >= c.time && st < c.time + tfSec);
     if(idx<0 || idx>=S.candles.length-3) return;
     const future = S.candles.slice(idx+1, idx+8);
     if(!future.length) return;
@@ -1872,7 +1904,7 @@ function renderScanResults(results){
   }).join('');
 }
 
-function selectScanCoin(sym){ S.symbol=sym; S.sweepLog=[]; S.painHistory=[]; gotoPage('chartPage','nav_chart'); loadData(); }
+function selectScanCoin(sym){ S.symbol=sym; S.sweepLog=[]; S.painHistory=[]; try{localStorage.removeItem('liqmap_chartrange');}catch(e){} gotoPage('chartPage','nav_chart'); loadData(); }
 
 // ══════════════════════════════════════════════════════
 //  S/R ANALİZİ — Unified fonksiyon (BUG-6 FIX)
@@ -1997,7 +2029,7 @@ function resizeCanvases(){
   }
 }
 
-function scheduleHeatDraw(){ clearTimeout(heatTimer); heatTimer=setTimeout(drawHeatmap, 32); }
+function scheduleHeatDraw(){ clearTimeout(heatTimer); heatTimer=setTimeout(()=>{ drawHeatmap(); drawWhaleCanvas(); }, 32); }
 
 function drawHeatmap(){
   const W=heatCanvas.width, H=heatCanvas.height;
@@ -2058,7 +2090,13 @@ function setDir(d){
   saveState();
 }
 
-function autoEntry(){ const nz=S.liqZones[0]; if(nz) document.getElementById('entryInput').value=(nz.price*(S.setupDir==='long'?1.0015:0.9985)).toFixed(6); else document.getElementById('entryInput').value=S.price.toFixed(6); calcSetup(); }
+function autoEntry(){
+  const nz=S.liqZones[0];
+  if(!nz){ document.getElementById('entryInput').value=S.price.toFixed(6); calcSetup(); return; }
+  if(nz.dist > 3.0) showToast(`⚠️ En yakın zon ${nz.dist.toFixed(1)}% uzakta`, 3000);
+  document.getElementById('entryInput').value=(nz.price*(S.setupDir==='long'?1.0015:0.9985)).toFixed(6);
+  calcSetup();
+}
 function autoStop(){
   const entry=parseFloat(document.getElementById('entryInput').value)||S.price;
   const isLong=S.setupDir==='long';
@@ -2278,7 +2316,7 @@ function toggleSet(key){
   S.settings[key]=!S.settings[key];
   const el=document.getElementById('tog_'+key); if(el) el.classList.toggle('on',S.settings[key]);
   if(key==='showVolume') volumeSeries.applyOptions({visible:S.settings.showVolume});
-  else if(key==='whaleAlert'){ if(S.settings.whaleAlert) connectAggWS(loadId); }
+  else if(key==='whaleAlert'){ /* balina tespiti connectPriceWS içinde */ }
   else if(S.candles.length) renderLines();
   if(key==='heatmap'||key==='heatDecay') scheduleHeatDraw();
   if(key==='sweepMarkers') drawSweepMarkers();
@@ -2376,7 +2414,7 @@ function confirmSymbol(){
   if(!val) return;
   // Futures'ta neredeyse tüm çiftler USDT ile biter
   if(!val.endsWith('USDT')&&!val.endsWith('BUSD')&&!val.endsWith('BTC')&&!val.endsWith('ETH')) val+='USDT';
-  closeModal(); S.symbol=val; S.sweepLog=[]; S.painHistory=[]; loadData();
+  closeModal(); S.symbol=val; S.sweepLog=[]; S.painHistory=[]; try{localStorage.removeItem('liqmap_chartrange');}catch(e){} loadData();
 }
 
 document.querySelectorAll('.tfBtn').forEach(btn=>{
@@ -2410,6 +2448,19 @@ function fmtP(p){
 
 function fmtVol(v){ if(!v||isNaN(v)) return '—'; if(v>=1e9) return (v/1e9).toFixed(1)+'B'; if(v>=1e6) return (v/1e6).toFixed(1)+'M'; if(v>=1e3) return (v/1e3).toFixed(1)+'K'; return v.toFixed(0); }
 function setLiveDot(on){ document.getElementById('liveDot').classList.toggle('on',on); }
+
+// Mum kapanış geri sayımı
+const TF_SEC = {'1m':60,'5m':300,'15m':900,'1h':3600,'4h':14400,'1d':86400};
+function updateCountdown(){
+  const tfSec = TF_SEC[S.tf] || 3600;
+  const now = Math.floor(Date.now()/1000);
+  const remaining = tfSec - (now % tfSec);
+  const m = Math.floor(remaining/60), s = remaining%60;
+  const el = document.getElementById('countdown');
+  if(el) el.textContent = (tfSec >= 3600 ? Math.floor(remaining/3600)+'h'+(Math.floor((remaining%3600)/60)+'').padStart(2,'0')+'m' : m+':'+(s+'').padStart(2,'0'));
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
 function showLoading(txt){ document.getElementById('loadTxt').textContent=txt||'...'; document.getElementById('loadingOverlay').classList.add('show'); }
 function hideLoading(){ document.getElementById('loadingOverlay').classList.remove('show'); }
 let toastTimer;
@@ -2428,6 +2479,12 @@ window.addEventListener('DOMContentLoaded',()=>{
   updateAlarmUI();
   renderSetupHistory();
   loadFuturesSymbols(); // Futures sembol listesini arka planda çek
+  // WS bağlı değilse fallback polling (5s)
+  setInterval(() => {
+    if(!ws || ws.readyState !== WebSocket.OPEN){
+      fetch24h(loadId).then(() => { updateTopBar(); updateInfoStrip(); });
+    }
+  }, 5000);
   loadData();
   // Kayan strip: track genişliğine göre animasyon süresini ayarla
   const track = document.getElementById('infoStripTrack');

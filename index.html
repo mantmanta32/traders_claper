@@ -1191,7 +1191,7 @@ async function loadData(){
   S.lastCandleForSweep = null;
 
   try{
-    const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S.symbol}&interval=${S.tf}&limit=600`);
+    const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S.symbol}&interval=${S.tf}&limit=800`);
     if(myId !== loadId) return;
     if(!res.ok) throw new Error(`${S.symbol} Binance Futures'ta bulunamadı`);
     const raw = await res.json();
@@ -1327,7 +1327,7 @@ async function fetchMultiTF(myId){
   try{
     const results = await Promise.allSettled(
       getMTFList(S.tf).map(tf =>
-        fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S.symbol}&interval=${tf}&limit=100`)
+        fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S.symbol}&interval=${tf}&limit=600`)
           .then(r => r.ok ? r.json() : null)
           .then(raw => {
             if(!raw) return [];
@@ -2605,7 +2605,7 @@ async function startScan(){
     document.getElementById('scanStatus').textContent = `Tarıyor: ${sym}...`;
     fill.style.width = ((i+1)/SCANNER_COINS.length*100)+'%';
     try{
-      const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=15m&limit=100`);
+      const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=15m&limit=600`);
       if(!res.ok){ await sleep(300); continue; }
       const raw = await res.json();
       const candles = raw.map(d => ({time:d[0]/1000,open:+d[1],high:+d[2],low:+d[3],close:+d[4],volume:+d[5]}));

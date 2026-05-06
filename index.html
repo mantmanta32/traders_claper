@@ -333,6 +333,50 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 
 .emptyState{font-size:11px;color:var(--t3);text-align:center;padding:16px 0}
 .up{color:var(--green)}.dn{color:var(--red)}
+
+/* AI SACRED BUTTON */
+#aiSacredBtn{position:absolute;bottom:108px;right:12px;z-index:8;width:52px;height:52px;border-radius:50%;border:2px solid transparent;background:linear-gradient(135deg,#7c3aed,#a855f7,#c084fc);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(168,85,247,.5),0 0 60px rgba(168,85,247,.2),inset 0 1px 1px rgba(255,255,255,.3);animation:sacredGlow 3s ease-in-out infinite;transition:transform .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+#aiSacredBtn:active{transform:scale(.88)}
+#aiSacredBtn:hover{box-shadow:0 0 32px rgba(168,85,247,.7),0 0 80px rgba(168,85,247,.35),inset 0 1px 1px rgba(255,255,255,.3)}
+#aiSacredBtn.loading{animation:sacredSpin 1s linear infinite;pointer-events:none}
+@keyframes sacredGlow{0%,100%{box-shadow:0 0 24px rgba(168,85,247,.5),0 0 60px rgba(168,85,247,.2),inset 0 1px 1px rgba(255,255,255,.3)}50%{box-shadow:0 0 32px rgba(168,85,247,.7),0 0 80px rgba(168,85,247,.35),0 0 4px rgba(251,191,36,.6),inset 0 1px 1px rgba(255,255,255,.3)}}
+@keyframes sacredSpin{to{transform:rotate(360deg)}}
+
+/* AI MODAL */
+#aiModal{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:210;display:none;align-items:flex-end;justify-content:center}
+#aiModal.open{display:flex}
+.aiSheet{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:14px 14px calc(14px + var(--safe-b));border-top:1px solid var(--border);animation:slideUp .25s ease}
+.aiSheet::-webkit-scrollbar{display:none}
+.aiHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.aiTitle{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#a855f7,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.aiClose{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--t2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.aiClose:active{opacity:.7}
+.aiParamPills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.aiParamPill{font-size:9px;padding:3px 8px;border-radius:12px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:var(--purple);white-space:nowrap}
+.aiResultBox{background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:14px;min-height:120px;position:relative;overflow:hidden}
+.aiResultBox .aiTyping{color:var(--t2);font-size:12px;line-height:1.8}
+.aiResultBox .aiTyping .aiCursor{display:inline-block;width:2px;height:14px;background:var(--purple);animation:cursorBlink .8s steps(2) infinite;vertical-align:text-bottom;margin-left:2px}
+@keyframes cursorBlink{0%{opacity:1}100%{opacity:0}}
+.aiSignalCard{background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(251,191,36,.05));border:1px solid rgba(168,85,247,.3);border-radius:12px;padding:14px;margin-top:12px}
+.aiSignalRow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border2);font-size:12px}
+.aiSignalRow:last-child{border-bottom:none}
+.aiSignalLbl{color:var(--t3);font-size:10px;text-transform:uppercase}
+.aiSignalVal{font-weight:700;font-variant-numeric:tabular-nums}
+.aiDirection{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-size:14px;font-weight:800;margin:8px auto;text-align:center}
+.aiDirection.long{background:rgba(34,197,94,.12);color:var(--green);border:1px solid var(--green)}
+.aiDirection.short{background:rgba(239,68,68,.12);color:var(--red);border:1px solid var(--red)}
+.aiDirection.neutral{background:rgba(245,158,11,.12);color:var(--yellow);border:1px solid var(--yellow)}
+.aiDisclaimer{font-size:9px;color:var(--t3);text-align:center;margin-top:10px;line-height:1.5;padding:6px 8px;background:var(--bg3);border-radius:8px}
+.aiRetryBtn{width:100%;padding:10px;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-top:10px;transition:opacity .15s}
+.aiRetryBtn:active{opacity:.7;transform:scale(.98)}
+
+/* AI SETTINGS PARAM TOGGLES */
+.aiParamGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 14px}
+.aiParamItem{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg3);border-radius:8px;border:1px solid var(--border2);cursor:pointer;transition:all .15s;font-size:11px;font-weight:600}
+.aiParamItem.on{border-color:var(--purple);background:rgba(168,85,247,.08)}
+.aiParamItem:active{transform:scale(.95)}
+.aiParamDot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .2s}
+.aiParamItem.on .aiParamDot{background:var(--purple);box-shadow:0 0 6px rgba(168,85,247,.5)}
 </style>
 </head>
 <body>
@@ -388,6 +432,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
         </div>
         <button id="fabMain" onclick="toggleFab()">⚡</button>
       </div>
+      <button id="aiSacredBtn" onclick="runAIAnalysis()" title="🔮 AI Piyasa Analizi">🔮</button>
     </div>
     <div id="infoStrip">
       <div id="infoStripTrack">
@@ -810,6 +855,19 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       <div class="setRow" onclick="clearStorage()"><div class="setIcon">🗑️</div><div class="setLbl"><div class="setName">Ayarları Sıfırla</div><div class="setDesc">Tüm kayıtlı ayarları temizle</div></div><span style="font-size:10px;color:var(--red)">Sıfırla</span></div>
     </div>
     <div class="setSection">
+      <div class="setHead">🔮 AI Analiz Parametreleri</div>
+      <div class="setRow" style="cursor:default;flex-wrap:wrap">
+        <div class="setIcon">🧠</div>
+        <div class="setLbl"><div class="setName">Pollinations AI</div><div class="setDesc">AI'ya gönderilecek parametreleri seçin</div></div>
+      </div>
+      <div class="aiParamGrid" id="aiParamSettingsGrid"></div>
+      <div class="setRow" style="cursor:default">
+        <div class="setIcon">📝</div>
+        <div class="setLbl"><div class="setName">Özel Prompt Eki</div><div class="setDesc">AI'ya ekstra talimat (opsiyonel)</div></div>
+      </div>
+      <div style="padding:6px 14px 12px"><input class="numInput" id="aiCustomPrompt" type="text" placeholder="Örn: Scalp trade odaklı analiz yap..." style="font-size:11px;font-weight:500" oninput="S.aiSettings.customPrompt=this.value;saveState()"></div>
+    </div>
+    <div class="setSection">
       <div class="setHead">ℹ️ Hakkında</div>
       <div class="setRow" style="cursor:default"><div class="setIcon">🎯</div><div class="setLbl"><div class="setName">LiqMap Pro</div><div class="setDesc">Binance Futures Likidasyon Haritası</div></div><span style="font-size:10px;color:var(--t3)">v6.0</span></div>
     </div>
@@ -881,6 +939,24 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     <div class="modalTitle">🔔 Alarm Yönetici</div>
     <div id="alarmList"><div class="emptyState">Alarm yok</div></div>
     <p style="font-size:10px;color:var(--t3);margin-top:12px;line-height:1.6">Alarm kurmak için: Liq zonu listesinde 🔔 butonuna basın veya Setup Builder'dan alarm kurun.</p>
+  </div>
+</div>
+
+<!-- AI ANALYSIS MODAL -->
+<div id="aiModal" onclick="if(event.target.id==='aiModal')closeAIModal()">
+  <div class="aiSheet">
+    <div class="modalHandle"></div>
+    <div class="aiHeader">
+      <div class="aiTitle">🔮 AI Piyasa Analizi</div>
+      <button class="aiClose" onclick="closeAIModal()">✕</button>
+    </div>
+    <div class="aiParamPills" id="aiParamPills"></div>
+    <div class="aiResultBox" id="aiResultBox">
+      <div class="aiTyping" id="aiTypingArea">Analiz başlatmak için butona basın...</div>
+    </div>
+    <div id="aiSignalArea"></div>
+    <div class="aiDisclaimer">⚠️ Bu analiz yapay zekâ tarafından üretilmiştir. Yatırım tavsiyesi niteliği taşımaz. Kendi araştırmanızı yapın ve risk yönetiminize dikkat edin.</div>
+    <button class="aiRetryBtn" onclick="runAIAnalysis()">🔮 Tekrar Analiz Et</button>
   </div>
 </div>
 
@@ -971,6 +1047,7 @@ function saveState(){
       sweepLog:sweepSnap,
       paperTrades:S.paperTrades.slice(0, S.paperSettings.historyLimit),
       paperSettings:S.paperSettings,
+      aiSettings:S.aiSettings,
     }));
   }catch(e){}
   fbPush(); // Firebase'e de kaydet
@@ -990,6 +1067,7 @@ function loadState(){
     if(d.sweepLog) S.sweepLog = d.sweepLog;
     if(d.paperTrades) S.paperTrades = d.paperTrades;
     if(d.paperSettings) Object.assign(S.paperSettings, d.paperSettings);
+    if(d.aiSettings){ if(d.aiSettings.params) Object.assign(S.aiSettings.params, d.aiSettings.params); if(d.aiSettings.customPrompt!==undefined) S.aiSettings.customPrompt=d.aiSettings.customPrompt; }
   }catch(e){}
 }
 function applyLoadedState(){
@@ -1089,7 +1167,17 @@ const S = {
     showSR:true, showLiq:true, showVolume:true,
     sweepDetect:true, whaleAlert:true, sweepMarkers:true,
     scanLevFilter:[50,100],
-  }
+  },
+  aiSettings:{
+    params:{
+      price:true, change24h:true, high24:true, low24:true, volume24h:true,
+      fundingRate:true, openInterest:true, cvd:true,
+      srLevels:true, liqZones:true, painIndex:true,
+      signals:true, sweepLog:true, whaleLog:true,
+      timeframe:true, orderBlocks:false, fvg:false,
+    },
+    customPrompt:'',
+  },
 };
 
 const LEV_CFG = [
@@ -3853,6 +3941,318 @@ function playWinSound(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTo
 // Paper LOSS: aşağı ton
 function playLossSound(){ playTone(330,'triangle',0.4,0.5); setTimeout(()=>playTone(220,'triangle',0.3,0.4),200); }
 
+// ══════════════════════════════════════════════════════
+//  AI ANALİZ SİSTEMİ — Pollinations.ai
+// ══════════════════════════════════════════════════════
+const AI_PARAM_DEFS = [
+  {key:'price', label:'Anlık Fiyat', icon:'💰'},
+  {key:'change24h', label:'24s Değişim', icon:'📊'},
+  {key:'high24', label:'24s High/Low', icon:'📈'},
+  {key:'low24', label:'24s Low', icon:'📉'},
+  {key:'volume24h', label:'24s Hacim', icon:'📦'},
+  {key:'fundingRate', label:'Funding Rate', icon:'💵'},
+  {key:'openInterest', label:'Open Interest', icon:'🔓'},
+  {key:'cvd', label:'CVD (Delta)', icon:'⚡'},
+  {key:'srLevels', label:'S/R Seviyeleri', icon:'📍'},
+  {key:'liqZones', label:'Liq Zonları', icon:'💀'},
+  {key:'painIndex', label:'Pain Index', icon:'🔥'},
+  {key:'signals', label:'Sinyaller', icon:'📡'},
+  {key:'sweepLog', label:'Sweep Geçmişi', icon:'🌊'},
+  {key:'whaleLog', label:'Balina Log', icon:'🐳'},
+  {key:'timeframe', label:'Zaman Dilimi', icon:'⏰'},
+  {key:'orderBlocks', label:'Order Blocks', icon:'📦'},
+  {key:'fvg', label:'FVG', icon:'🔲'},
+];
+
+function initAISettings(){
+  const grid = document.getElementById('aiParamSettingsGrid');
+  if(!grid) return;
+  grid.innerHTML = AI_PARAM_DEFS.map(p => {
+    const on = S.aiSettings.params[p.key];
+    return `<div class="aiParamItem${on?' on':''}" onclick="toggleAIParam('${p.key}',this)">
+      <div class="aiParamDot"></div>
+      <span>${p.icon} ${p.label}</span>
+    </div>`;
+  }).join('');
+  // Custom prompt
+  const cp = document.getElementById('aiCustomPrompt');
+  if(cp && S.aiSettings.customPrompt) cp.value = S.aiSettings.customPrompt;
+}
+
+function toggleAIParam(key, el){
+  S.aiSettings.params[key] = !S.aiSettings.params[key];
+  el.classList.toggle('on', S.aiSettings.params[key]);
+  saveState();
+}
+
+function collectAIParams(){
+  const p = S.aiSettings.params;
+  const data = {};
+  if(p.price) data.price = S.price;
+  if(p.change24h && S.openP) data.change24h = ((S.price - S.openP) / S.openP * 100).toFixed(2) + '%';
+  if(p.high24) data.high24h = S.high24;
+  if(p.low24) data.low24h = S.low24;
+  if(p.volume24h) data.volume24h = fmtVol(S.vol24);
+  if(p.fundingRate) data.fundingRate = S.fundingRate.toFixed(4) + '%';
+  if(p.openInterest) data.openInterest = fmtVol(S.oi);
+  if(p.cvd) data.cvd = (S.cvd >= 0 ? '+' : '') + fmtVol(Math.abs(S.cvd));
+  if(p.timeframe) data.timeframe = S.tf;
+  if(p.srLevels && S.srLevels.length){
+    const supports = S.srLevels.filter(l => l.type === 'support').slice(0, 5).map(l => ({
+      price: fmtP(l.price), strength: l.strength.toFixed(1),
+      distance: ((l.price - S.price) / S.price * 100).toFixed(2) + '%',
+    }));
+    const resistances = S.srLevels.filter(l => l.type === 'resistance').slice(0, 5).map(l => ({
+      price: fmtP(l.price), strength: l.strength.toFixed(1),
+      distance: ((l.price - S.price) / S.price * 100).toFixed(2) + '%',
+    }));
+    data.supports = supports;
+    data.resistances = resistances;
+  }
+  if(p.liqZones && S.liqZones.length){
+    data.liqZones = S.liqZones.slice(0, 8).map(z => ({
+      price: fmtP(z.price), leverage: z.lev.x + 'x',
+      type: z.srType === 'support' ? 'Long Liq' : 'Short Liq',
+      distance: z.dist.toFixed(2) + '%',
+    }));
+  }
+  if(p.painIndex && S.srLevels.length){
+    const {ls, ss} = calcPainDetailed();
+    const total = ls + ss || 1;
+    data.painIndex = {
+      longPressure: (ls / total * 100).toFixed(0) + '%',
+      shortPressure: (ss / total * 100).toFixed(0) + '%',
+      dominant: ls > ss ? 'Aşağı Baskı (Longlar sıkışık)' : 'Yukarı Baskı (Shortlar sıkışık)',
+    };
+  }
+  if(p.signals && S.signals.length){
+    data.signals = S.signals.slice(0, 5).map(s => ({
+      direction: s.dir, score: s.score, rr: s.rr.toFixed(2),
+      entry: fmtP(s.entry), stop: fmtP(s.stop), target: fmtP(s.target),
+      reasons: (s.reasons || []).join(', '),
+    }));
+  }
+  if(p.sweepLog && S.sweepLog.length){
+    data.recentSweeps = S.sweepLog.slice(0, 5).map(s => ({
+      time: s.time, side: s.side, leverage: s.lev.x + 'x',
+      price: fmtP(s.price), strength: s.strength,
+    }));
+  }
+  if(p.whaleLog && S.whaleLog.length){
+    data.whaleActivity = S.whaleLog.slice(0, 5).map(w => ({
+      time: w.time, side: w.side,
+      amount: '$' + fmtVol(w.usd), price: fmtP(w.price),
+    }));
+  }
+  if(p.orderBlocks && S.candles.length > 5){
+    try{
+      const obs = findOrderBlocks(S.candles);
+      data.orderBlocks = obs.slice(0, 4).map(ob => ({
+        type: ob.type, top: fmtP(ob.top), bottom: fmtP(ob.bottom),
+      }));
+    }catch(e){}
+  }
+  if(p.fvg && S.candles.length > 5){
+    try{
+      const fvgs = findFVGs(S.candles);
+      data.fvg = fvgs.slice(0, 4).map(f => ({
+        type: f.type, mid: fmtP(f.mid), gap: fmtP(f.gap),
+      }));
+    }catch(e){}
+  }
+  return data;
+}
+
+function openAIModal(){
+  document.getElementById('aiModal').classList.add('open');
+}
+function closeAIModal(){
+  document.getElementById('aiModal').classList.remove('open');
+}
+
+let aiAbortCtrl = null;
+
+async function runAIAnalysis(){
+  // Açıksa modal'ı kapat, değilse aç
+  openAIModal();
+  const btn = document.getElementById('aiSacredBtn');
+  const typingArea = document.getElementById('aiTypingArea');
+  const signalArea = document.getElementById('aiSignalArea');
+  const pillsArea = document.getElementById('aiParamPills');
+
+  // Abort previous
+  if(aiAbortCtrl) try{ aiAbortCtrl.abort(); }catch(e){}
+  aiAbortCtrl = new AbortController();
+
+  btn.classList.add('loading');
+  typingArea.innerHTML = '<span style="color:var(--purple)">🔮 AI analiz ediyor...</span><span class="aiCursor"></span>';
+  signalArea.innerHTML = '';
+
+  // Parametre topla
+  const params = collectAIParams();
+  const enabledKeys = AI_PARAM_DEFS.filter(p => S.aiSettings.params[p.key]);
+  pillsArea.innerHTML = enabledKeys.map(p => `<span class="aiParamPill">${p.icon} ${p.label}</span>`).join('');
+
+  // Prompt oluştur
+  const systemPrompt = `Sen profesyonel bir kripto futures teknik analisti ve trader'sın. Türkçe yanıt ver.
+Sana Binance Futures'tan ${S.symbol} (${S.tf} zaman dilimi) için anlık piyasa verileri verilecek.
+
+GÖREVİN:
+1. Verileri analiz et
+2. Piyasa durumunu özetle (2-3 cümle)
+3. AL (LONG) veya SAT (SHORT) veya BEKLE kararı ver
+4. Eğer AL veya SAT ise kesinlikle şu bilgileri ver:
+   - Giriş Fiyatı (Entry)
+   - Take Profit (TP)
+   - Stop Loss (SL)
+   - Risk/Reward oranı
+   - Güven skoru (0-100)
+5. Kısa gerekçe yaz
+
+ÖNEMLİ: Yanıtını şu JSON formatında VER (yalnızca JSON, başka bir şey yazma):
+{
+  "summary": "Piyasa durumu özeti",
+  "direction": "LONG" | "SHORT" | "BEKLE",
+  "confidence": 0-100,
+  "entry": sayı veya null,
+  "tp": sayı veya null,
+  "sl": sayı veya null,
+  "rr": sayı veya null,
+  "reasoning": "Kısa gerekçe",
+  "risk": "Düşük" | "Orta" | "Yüksek",
+  "keyLevels": ["önemli seviye1", "önemli seviye2"]
+}`;
+
+  let userMsg = `${S.symbol} — ${S.tf} anlık piyasa verileri:\n\n${JSON.stringify(params, null, 2)}`;
+  if(S.aiSettings.customPrompt){
+    userMsg += `\n\nEk talimat: ${S.aiSettings.customPrompt}`;
+  }
+
+  try{
+    const response = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      signal: aiAbortCtrl.signal,
+      body: JSON.stringify({
+        model: 'openai',
+        messages: [
+          {role: 'system', content: systemPrompt},
+          {role: 'user', content: userMsg},
+        ],
+        temperature: 0.4,
+        max_tokens: 1000,
+        response_format: {type: 'json_object'},
+      }),
+    });
+
+    if(!response.ok) throw new Error('AI servisi yanıt vermedi (HTTP ' + response.status + ')');
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || data.text || JSON.stringify(data);
+
+    // JSON parse dene
+    let result;
+    try{
+      // İçerikten JSON çıkar
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      result = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+    }catch(e){
+      // JSON parse başarısız — düz metin göster
+      typingArea.innerHTML = `<div style="white-space:pre-wrap;line-height:1.7;color:var(--t1);font-size:12px">${content.replace(/</g,'&lt;')}</div>`;
+      btn.classList.remove('loading');
+      playTone(880,'sine',0.3,0.2);
+      return;
+    }
+
+    // Başarılı JSON — güzel göster
+    displayAIResult(result);
+    playTone(880,'sine',0.2,0.2);
+    setTimeout(()=>playTone(1320,'sine',0.3,0.25),120);
+
+  }catch(err){
+    if(err.name === 'AbortError') return;
+    typingArea.innerHTML = `<div style="color:var(--red);font-size:12px">❌ Hata: ${err.message}</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:6px">İnternet bağlantınızı kontrol edin veya tekrar deneyin.</div>`;
+  }
+  btn.classList.remove('loading');
+}
+
+function displayAIResult(r){
+  const typingArea = document.getElementById('aiTypingArea');
+  const signalArea = document.getElementById('aiSignalArea');
+
+  // Özet
+  typingArea.innerHTML = `<div style="font-size:12px;line-height:1.8;color:var(--t1)">${r.summary || '—'}</div>`;
+
+  // Yön kartı
+  const dirClass = r.direction === 'LONG' ? 'long' : r.direction === 'SHORT' ? 'short' : 'neutral';
+  const dirIcon = r.direction === 'LONG' ? '🟢' : r.direction === 'SHORT' ? '🔴' : '⏸️';
+  const dirLabel = r.direction === 'LONG' ? 'AL (LONG)' : r.direction === 'SHORT' ? 'SAT (SHORT)' : 'BEKLE';
+
+  let html = `<div style="text-align:center"><div class="aiDirection ${dirClass}">${dirIcon} ${dirLabel}</div></div>`;
+
+  if(r.direction !== 'BEKLE' && r.entry){
+    html += `<div class="aiSignalCard">
+      <div class="aiSignalRow"><span class="aiSignalLbl">Giriş (Entry)</span><span class="aiSignalVal" style="color:var(--blue)">$${fmtP(r.entry)}</span></div>
+      <div class="aiSignalRow"><span class="aiSignalLbl">Take Profit</span><span class="aiSignalVal" style="color:var(--green)">$${fmtP(r.tp)}</span></div>
+      <div class="aiSignalRow"><span class="aiSignalLbl">Stop Loss</span><span class="aiSignalVal" style="color:var(--red)">$${fmtP(r.sl)}</span></div>
+      ${r.rr ? `<div class="aiSignalRow"><span class="aiSignalLbl">Risk/Reward</span><span class="aiSignalVal" style="color:var(--cyan)">${parseFloat(r.rr).toFixed(2)}x</span></div>` : ''}
+      <div class="aiSignalRow"><span class="aiSignalLbl">Güven</span><span class="aiSignalVal" style="color:${r.confidence>=70?'var(--green)':r.confidence>=50?'var(--yellow)':'var(--red)'}">${r.confidence}/100</span></div>
+      <div class="aiSignalRow"><span class="aiSignalLbl">Risk</span><span class="aiSignalVal" style="color:${r.risk==='Düşük'?'var(--green)':r.risk==='Yüksek'?'var(--red)':'var(--yellow)'}">${r.risk || '—'}</span></div>
+    </div>`;
+  }
+
+  if(r.confidence){
+    html += `<div style="margin-top:10px">
+      <div style="font-size:10px;color:var(--t3);margin-bottom:4px">Güven Skoru</div>
+      <div style="width:100%;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div style="width:${r.confidence}%;height:100%;background:linear-gradient(90deg,${r.confidence>=70?'#22c55e':'#f59e0b'},${r.confidence>=70?'#16a34a':'#d97706'});border-radius:3px;transition:width .5s"></div>
+      </div>
+    </div>`;
+  }
+
+  if(r.reasoning){
+    html += `<div style="margin-top:10px;font-size:11px;color:var(--t2);line-height:1.7;padding:8px 10px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--purple)">
+      <b style="color:var(--purple)">📝 Gerekçe:</b> ${r.reasoning}
+    </div>`;
+  }
+
+  if(r.keyLevels && r.keyLevels.length){
+    html += `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+      ${r.keyLevels.map(lv => `<span style="font-size:10px;padding:3px 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--t1);font-weight:600">📍 ${lv}</span>`).join('')}
+    </div>`;
+  }
+
+  // Setup'a gönder butonu
+  if(r.direction !== 'BEKLE' && r.entry){
+    html += `<div style="display:flex;gap:6px;margin-top:12px">
+      <button class="sigBtn primary" style="flex:1" onclick="sendAIToSetup(${r.entry},${r.sl},${r.tp},'${r.direction==='LONG'?'long':'short'}')">🎯 Setup'a Gönder</button>
+      <button class="sigBtn" style="flex:1" onclick="copyAIResult()">📋 Kopyala</button>
+    </div>`;
+  }
+
+  signalArea.innerHTML = html;
+}
+
+function sendAIToSetup(entry, sl, tp, dir){
+  S.setupDir = dir;
+  setDir(dir);
+  document.getElementById('entryInput').value = entry;
+  document.getElementById('stopInput').value = sl;
+  document.getElementById('targetInput').value = tp;
+  calcSetup();
+  closeAIModal();
+  gotoPage('toolsPage','nav_tools');
+  showToast('🎯 AI tavsiyesi Setup Builder\'a gönderildi');
+}
+
+function copyAIResult(){
+  const typingArea = document.getElementById('aiTypingArea');
+  const signalArea = document.getElementById('aiSignalArea');
+  const text = `🔮 AI Analiz — ${S.symbol} (${S.tf})\n` + (typingArea?.innerText || '') + '\n' + (signalArea?.innerText || '');
+  navigator.clipboard?.writeText(text).then(() => showToast('📋 AI analizi kopyalandı!'));
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
   loadState();
   initFirebase();
@@ -3864,6 +4264,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   updatePaperSettingsUI();
   renderSetupHistory();
   loadFuturesSymbols(); // Futures sembol listesini arka planda çek
+  initAISettings(); // AI parametre ayarları
   // WS bağlı değilse fallback polling (5s)
   setInterval(() => {
     if(!ws || ws.readyState !== WebSocket.OPEN){

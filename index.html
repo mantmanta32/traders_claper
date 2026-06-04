@@ -125,13 +125,22 @@
             gap: 12px;
         }
 
+        .view-section { display: none; flex-direction: column; gap: 12px; width: 100%; max-width: 1200px; margin: 0 auto; }
+        .view-active { display: flex; }
+
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
             width: 100%;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
+        }
+
+        /* === ANALYSIS TAB (FULL CHART) === */
+        #view-analysis { height: 100%; }
+        #view-analysis .chart-box {
+            flex: 1;
+            height: calc(100vh - 180px); /* Full screen minus header/nav */
+            margin-top: 0;
         }
 
         @media (max-width: 850px) {
@@ -368,100 +377,108 @@
     </header>
 
     <main class="main-scroll">
-        <div class="container">
-            
-            <!-- DECISION ENGINE CARD -->
-            <div class="card decision-card" id="decisionPanel">
-                <div class="pb-header">
-                    <div>
-                        <div class="pb-name" id="pbName">VERİ TOPLANIYOR</div>
-                        <div id="pbSubline" style="font-size:0.75rem; color:var(--text-dim); margin-top:2px;">Mikro yapı analizi yapılıyor...</div>
-                    </div>
-                    <div class="pb-action action-wait" id="pbAction">BEKLE</div>
-                </div>
-
-                <div style="display:flex; gap:12px; align-items:center;">
-                    <div class="score-circle" id="confCircle">0</div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; flex:1;">
-                        <div class="metric-box">
-                            <div class="m-label">Momentum Rejimi</div>
-                            <div class="m-value" id="resRegime">NÖTR</div>
+        <!-- GOD-MODE VIEW -->
+        <section id="view-godmode" class="view-section view-active">
+            <div class="container">
+                <!-- DECISION ENGINE CARD -->
+                <div class="card decision-card" id="decisionPanel">
+                    <div class="pb-header">
+                        <div>
+                            <div class="pb-name" id="pbName">VERİ TOPLANIYOR</div>
+                            <div id="pbSubline" style="font-size:0.75rem; color:var(--text-dim); margin-top:2px;">Mikro yapı analizi yapılıyor...</div>
                         </div>
-                        <div class="metric-box">
-                            <div class="m-label">Fakeout Riski</div>
-                            <div class="m-value" id="resRisk">DÜŞÜK</div>
+                        <div class="pb-action action-wait" id="pbAction">BEKLE</div>
+                    </div>
+
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <div class="score-circle" id="confCircle">0</div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; flex:1;">
+                            <div class="metric-box">
+                                <div class="m-label">Momentum Rejimi</div>
+                                <div class="m-value" id="resRegime">NÖTR</div>
+                            </div>
+                            <div class="metric-box">
+                                <div class="m-label">Fakeout Riski</div>
+                                <div class="m-value" id="resRisk">DÜŞÜK</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="pbWhy" class="pb-why">
+                        Momentum tetikleyici (%2.0) veya belirgin trade burst bekleniyor...
+                    </div>
+                </div>
+
+                <!-- BINANCE CARD -->
+                <div class="card stale-state" id="binCard">
+                    <div class="card-title">
+                        <span>BINANCE FUTURES (TRADE)</span>
+                        <span class="status-chip status-dead" id="binStatus">OFFLINE</span>
+                    </div>
+                    <div class="price-val" id="binPrice">0.00</div>
+                    <div class="metric-grid">
+                        <div class="metric-box"><div class="m-label">VELOCITY</div><div class="m-value" id="binVel">0.0 bps/s</div></div>
+                        <div class="metric-box"><div class="m-label">TICKS</div><div class="m-value" id="binTicks">0/s</div></div>
+                        <div class="metric-box"><div class="m-label">LATENCY</div><div class="m-value" id="binLat">0ms</div></div>
+                        <div class="metric-box"><div class="m-label">OI (Browser)</div><div class="m-value" id="resOI" style="font-size:0.7rem">CORS Restricted</div></div>
+                    </div>
+                    <div class="pressure-container">
+                        <div class="pressure-labels">
+                            <span id="buyPctLabel">BUY 50%</span>
+                            <span id="sellPctLabel">SELL 50%</span>
+                        </div>
+                        <div class="pressure-line">
+                            <div class="p-buy" id="binBuyBar" style="width:50%"></div>
+                            <div class="p-sell" id="binSellBar" style="width:50%"></div>
                         </div>
                     </div>
                 </div>
 
-                <div id="pbWhy" class="pb-why">
-                    Momentum tetikleyici (%2.0) veya belirgin trade burst bekleniyor...
-                </div>
-            </div>
-
-            <!-- BINANCE CARD -->
-            <div class="card stale-state" id="binCard">
-                <div class="card-title">
-                    <span>BINANCE FUTURES (TRADE)</span>
-                    <span class="status-chip status-dead" id="binStatus">OFFLINE</span>
-                </div>
-                <div class="price-val" id="binPrice">0.00</div>
-                <div class="metric-grid">
-                    <div class="metric-box"><div class="m-label">VELOCITY</div><div class="m-value" id="binVel">0.0 bps/s</div></div>
-                    <div class="metric-box"><div class="m-label">TICKS</div><div class="m-value" id="binTicks">0/s</div></div>
-                    <div class="metric-box"><div class="m-label">LATENCY</div><div class="m-value" id="binLat">0ms</div></div>
-                    <div class="metric-box"><div class="m-label">OI (Browser)</div><div class="m-value" id="resOI" style="font-size:0.7rem">CORS Restricted</div></div>
-                </div>
-                <div class="pressure-container">
-                    <div class="pressure-labels">
-                        <span id="buyPctLabel">BUY 50%</span>
-                        <span id="sellPctLabel">SELL 50%</span>
+                <!-- MEXC CARD -->
+                <div class="card stale-state" id="mexCard">
+                    <div class="card-title">
+                        <span>MEXC FUTURES (EDGE)</span>
+                        <span class="status-chip status-dead" id="mexStatus">OFFLINE</span>
                     </div>
-                    <div class="pressure-line">
-                        <div class="p-buy" id="binBuyBar" style="width:50%"></div>
-                        <div class="p-sell" id="binSellBar" style="width:50%"></div>
+                    <div class="price-val" id="mexPrice">0.00</div>
+                    <div class="metric-grid">
+                        <div class="metric-box"><div class="m-label">SYNC LAG</div><div class="m-value" id="mexSync">0ms</div></div>
+                        <div class="metric-box"><div class="m-label">SPREAD</div><div class="m-value" id="mexSpread">0.000%</div></div>
+                        <div class="metric-box"><div class="m-label">LATENCY</div><div class="m-value" id="mexLat">0ms</div></div>
+                        <div class="metric-box"><div class="m-label">TICKS</div><div class="m-value" id="mexTicks">0/s</div></div>
+                    </div>
+                    <div style="height: 10px;"></div>
+                </div>
+
+                <!-- LOGS -->
+                <div class="log-section">
+                    <div class="log-panel">
+                        <div class="log-header">MICROSTRUCTURE EVENT STREAM</div>
+                        <div class="log-content" id="eventLog"></div>
+                    </div>
+                    <div class="log-panel">
+                        <div class="log-header">SYSTEM LOGS</div>
+                        <div class="log-content" id="systemLog"></div>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- MEXC CARD -->
-            <div class="card stale-state" id="mexCard">
-                <div class="card-title">
-                    <span>MEXC FUTURES (EDGE)</span>
-                    <span class="status-chip status-dead" id="mexStatus">OFFLINE</span>
-                </div>
-                <div class="price-val" id="mexPrice">0.00</div>
-                <div class="metric-grid">
-                    <div class="metric-box"><div class="m-label">SYNC LAG</div><div class="m-value" id="mexSync">0ms</div></div>
-                    <div class="metric-box"><div class="m-label">SPREAD</div><div class="m-value" id="mexSpread">0.000%</div></div>
-                    <div class="metric-box"><div class="m-label">LATENCY</div><div class="m-value" id="mexLat">0ms</div></div>
-                    <div class="metric-box"><div class="m-label">TICKS</div><div class="m-value" id="mexTicks">0/s</div></div>
-                </div>
-                <div class="chart-box">
-                    <canvas id="mainChart" class="canvas-el"></canvas>
-                </div>
+        <!-- ANALYSIS VIEW (FULL CHART) -->
+        <section id="view-analysis" class="view-section">
+            <div class="card chart-box">
+                <div class="card-title">CANLI TEKNİK ANALİZ GRAFİĞİ</div>
+                <canvas id="mainChart" class="canvas-el"></canvas>
             </div>
-
-            <!-- LOGS -->
-            <div class="log-section">
-                <div class="log-panel">
-                    <div class="log-header">MICROSTRUCTURE EVENT STREAM</div>
-                    <div class="log-content" id="eventLog"></div>
-                </div>
-                <div class="log-panel">
-                    <div class="log-header">SYSTEM LOGS</div>
-                    <div class="log-content" id="systemLog"></div>
-                </div>
-            </div>
-        </div>
+        </section>
     </main>
 
     <nav class="bottom-nav">
-        <div class="nav-item active">
+        <div class="nav-item active" id="nav-godmode">
             <span class="nav-icon">⚡</span>
             <span>GOD-MODE</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" id="nav-analysis">
             <span class="nav-icon">📊</span>
             <span>ANALİZ</span>
         </div>
@@ -541,6 +558,12 @@ class ChartController {
         requestAnimationFrame(() => this.draw());
         this.lastRender = now;
     }
+    resize() {
+        if (!this.canvas.clientWidth) return; // Don't resize if hidden
+        this.canvas.width = this.canvas.clientWidth;
+        this.canvas.height = this.canvas.clientHeight;
+        this.draw();
+    }
     draw() {
         const { ctx, canvas, data } = this;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -585,11 +608,6 @@ class ChartController {
         });
         ctx.stroke();
     }
-    resize() {
-        this.canvas.width = this.canvas.clientWidth;
-        this.canvas.height = this.canvas.clientHeight;
-        this.draw();
-    }
 }
 
 class WolfEdgeApp {
@@ -618,6 +636,31 @@ class WolfEdgeApp {
         document.getElementById('btnReset').onclick = () => this.stop();
         document.getElementById('navKill').onclick = () => this.stop();
         document.getElementById('symInput').onkeydown = (e) => { if (e.key === 'Enter') this.start(); };
+
+        // Tab Switching
+        document.getElementById('nav-godmode').onclick = () => this.switchTab('godmode');
+        document.getElementById('nav-analysis').onclick = () => this.switchTab('analysis');
+    }
+
+    switchTab(tab) {
+        const views = { godmode: 'view-godmode', analysis: 'view-analysis' };
+        const navs = { godmode: 'nav-godmode', analysis: 'nav-analysis' };
+
+        Object.keys(views).forEach(k => {
+            const v = document.getElementById(views[k]);
+            const n = document.getElementById(navs[k]);
+            if (k === tab) {
+                v.classList.add('view-active');
+                n.classList.add('active');
+            } else {
+                v.classList.remove('view-active');
+                n.classList.remove('active');
+            }
+        });
+
+        if (tab === 'analysis') {
+            this.chart.resize(); // Trigger redraw for full screen
+        }
     }
 
     log(msg, type = 'sys') {
@@ -817,5 +860,5 @@ class WolfEdgeApp {
 
 window.onload = () => { window.wolf = new WolfEdgeApp(); };
 </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a06a874ccbdd720d',t:'MTc4MDYxMzc2Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>

@@ -2561,7 +2561,7 @@ function renderSignals() {
             <span class="sig-age">🧭 ${sig.regime ? sig.regime.replace('_',' ') : '—'}</span>
             <span class="sig-age">📘 OBI ${typeof sig.obi === 'number' ? (sig.obi>=0?'+':'') + (sig.obi*100).toFixed(0)+'%' : '—'}</span>
             <span class="sig-age">🧮 Bayes ${typeof sig.bayes === 'number' ? sig.bayes.toFixed(2) : '—'}</span>
-            <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${sig.sym}.P" target="_blank" onclick="event.stopPropagation()">📊 TV</a>
+            <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${sig.sym}.P&interval=1" target="_blank" onclick="event.stopPropagation()">📊 TV</a>
           </div>
         </div>
         <div class="sig-score">
@@ -2610,7 +2610,7 @@ function renderSignals() {
           </div>
         </div>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <a class="tv-btn" href="https://www.tradingview.com/chart/?symbol=BINANCE:${sig.sym}.P" target="_blank">📊 TradingView'da Aç →</a>
+          <a class="tv-btn" href="https://www.tradingview.com/chart/?symbol=BINANCE:${sig.sym}.P&interval=1" target="_blank">📊 TradingView'da Aç →</a>
           <a class="tv-btn" href="https://www.binance.com/futures/${sig.sym.replace('USDT','_USDT')}" target="_blank" style="background:rgba(240,185,11,.12);border-color:rgba(240,185,11,.3);color:#f0b90b">⚡ Binance'de Aç →</a>
         </div>
       </div>`;
@@ -2634,7 +2634,7 @@ function renderRecentLiqs() {
       <span class="rliq-usd${l.usd >= adaptiveWhaleUsd(getState(l.sym)) ? ' big' : ''}">${fmtUsd(l.usd)}</span>
       <span class="rliq-age">${timeDiff(l.ts)}</span>
       <div style="margin-left:auto;display:flex;gap:4px">
-        <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${l.sym}.P" target="_blank" onclick="event.stopPropagation()">📊 TV</a>
+        <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${l.sym}.P&interval=1" target="_blank" onclick="event.stopPropagation()">📊 TV</a>
       </div>
     </div>`).join('');
 }
@@ -2664,7 +2664,7 @@ function renderPatternMemory() {
           <span class="cat-badge cat-LEARN" style="font-size:9px">${p.sym.replace('USDT','')}</span>
           <span class="pat-type cat-badge cat-MOM" style="font-size:9px">${p.type.replace(/_/g,' ')}</span>
         </div>
-        <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${p.sym}.P" target="_blank" onclick="event.stopPropagation()">📊 TV</a>
+        <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${p.sym}.P&interval=1" target="_blank" onclick="event.stopPropagation()">📊 TV</a>
       </div>
       <div class="pat-stats">
         <span class="pat-wr" style="color:${col}">%${wr}</span>
@@ -2715,13 +2715,13 @@ function renderScanner() {
     if (oiFlag)    tags.push(`<span class="sym-tag" style="background:rgba(147,51,234,.12);color:#c084fc">🧠 OI ${oiDelta>=0?'+':''}${(oiDelta*100).toFixed(2)}%</span>`);
     if (s.liq_count_1h>0) tags.push(`<span class="sym-tag" style="background:rgba(59,130,246,.1);color:#93c5fd">${s.liq_count_1h} liq</span>`);
     return `<div class="sym-card${whaleFlag?' whale':hotFlag?' hot':''}">
-      <div style="cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=BINANCE:${s.sym}.P','_blank')">
+      <div style="cursor:pointer" onclick="window.open('https://www.tradingview.com/chart/?symbol=BINANCE:${s.sym}.P&interval=1','_blank')">
         <div class="sym-name">${s.sym.replace('USDT','')}</div>
         <div class="sym-price">${fmtPrice(s.price)}</div>
         <div class="sym-chg ${chg>=0?'chg-pos':'chg-neg'}">${chg>=0?'+':''}${chg.toFixed(2)}%</div>
       </div>
       <div class="sym-meta">${tags.join('')}</div>
-      <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.sym}.P" target="_blank">📊 TV</a>
+      <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.sym}.P&interval=1" target="_blank">📊 TV</a>
     </div>`;
   }).join('') || '<div style="color:var(--muted);padding:20px;font-size:12px">Sembol bulunamadı</div>';
 }
@@ -2807,7 +2807,7 @@ function renderAnalytics() {
       <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">${s.type.replace(/_/g,' ')}</span>
       <span style="font-family:var(--font-mono);font-size:10px;color:var(--dim)">${timeDiff(s.ts)}</span>
       <div style="margin-left:auto;display:flex;gap:4px">
-        <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.sym}.P" target="_blank" onclick="event.stopPropagation()">📊 TV</a>
+        <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.sym}.P&interval=1" target="_blank" onclick="event.stopPropagation()">📊 TV</a>
         <a class="tv-btn-sm" href="https://www.binance.com/futures/${s.sym.replace('USDT','_USDT')}" target="_blank" style="background:rgba(240,185,11,.12);border-color:rgba(240,185,11,.3);color:#f0b90b" onclick="event.stopPropagation()">⚡ BN</a>
       </div>
     </div>`).join('');
@@ -2843,7 +2843,7 @@ function showToast(sig) {
     </div>
     <div class="toast-msg">${sig.type.replace(/_/g,' ')}</div>
     <div style="margin-top:6px;display:flex;gap:6px">
-      <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${sig.sym}.P" target="_blank">📊 TV</a>
+      <a class="tv-btn-sm" href="https://www.tradingview.com/chart/?symbol=BINANCE:${sig.sym}.P&interval=1" target="_blank">📊 TV</a>
       <a class="tv-btn-sm" href="https://www.binance.com/futures/${sig.sym.replace('USDT','_USDT')}" target="_blank" style="background:rgba(240,185,11,.12);border-color:rgba(240,185,11,.3);color:#f0b90b">⚡ Binance</a>
     </div>`;
   t.addEventListener('click', e => { if(e.target.classList.contains('toast-close')) return; t.remove(); });
